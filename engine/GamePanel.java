@@ -1,5 +1,6 @@
 package engine;
 
+import enemy.Enemy;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -93,12 +94,16 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             shakeX = (int)(Math.random()*6-3);
             shakeY = (int)(Math.random()*6-3);
         } else { shakeX = 0; shakeY = 0; }
+       
 
         // --- Update player ---
         player.update(keyH, speed, phase,
                       currentLevel.platforms, WALL, WIDTH, HEIGHT);
 
         // Game over check
+         for (Enemy enemy : currentLevel.enemies) {
+            enemy.update();
+        }
         if (player.isDead()) {
             state = GameState.GAMEOVER;
             return;
@@ -110,6 +115,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         if (player.getRect().intersects(portalRect) && phase.equals("NIGHT")) {
             state = GameState.WIN;
         }
+        
+
     }
 
     @Override
@@ -179,6 +186,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                 g2.setFont(new Font("Arial", Font.BOLD, 11));
                 g2.drawString("WALL ▶ SPACE",
                     player.touchingWallRight ? player.x-80 : player.x+40, player.y+20);
+            }
+            for (Enemy enemy : currentLevel.enemies) {
+                enemy.draw(g2);
             }
 
             // Player

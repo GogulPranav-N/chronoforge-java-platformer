@@ -311,6 +311,6 @@ public class Player {
         g2.fillOval(x+(facingRight?18:6), y-4, 7, 5);
         g2.setColor(Color.YELLOW);
         g2.setFont(new Font("Arial", Font.BOLD, 12));
-        g2.drawString(animState + " [" + animFrame + "]", x - 5, y - 18);
+        // g2.drawString(animState + " [" + animFrame + "]", x - 5, y - 18);
     }
 }
