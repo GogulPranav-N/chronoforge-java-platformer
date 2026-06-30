@@ -27,7 +27,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     // Day/Night
     float timeOfDay = 0f;
-    float timeSpeed = 0.00015f;
+    float timeSpeed = 0.00012f;
     String phase = "NIGHT";
     int speed = 5;
 

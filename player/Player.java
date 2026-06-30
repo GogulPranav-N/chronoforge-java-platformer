@@ -107,9 +107,18 @@ public class Player {
         }
 
         // Gravity — floatier feel
-        if (!isDashing) {
+        // Gravity changes with day/night
+    if (!isDashing) {
+
+        if (phase.equals("DAY")) {
+            // Day: weaker powers
+            velY += key.downPressed ? 5 : 2;
+            if (velY > 18) velY = 18;
+    }   else {
+        // Night: moon powers
             velY += key.downPressed ? 4 : 1;
-            if (velY > 15) velY = 15; // lower terminal velocity
+            if (velY > 15) velY = 15;
+        }
         }
         y += velY;
 
@@ -149,23 +158,35 @@ public class Player {
 
         // Jump
         boolean jumpNow = key.jumpPressed && !jumpWasPressed;
-        if (jumpNow) {
-            if (onWall && !onGround) {
-                // Wall jump — stronger bounce
-                velY = -18;
-                int bounceX = touchingWallRight ? -15 : 15;
-                velX = bounceX;
-                wallJumpLock = 14;
-                jumpCount = 1;
-                spawnJumpParticles();
-            } else if (jumpCount < 2) {
-                // Normal + double jump — both stronger
-                velY = (jumpCount == 0) ? -20 : -17;
-                jumpCount++;
-                if (jumpCount == 2) spawnJumpParticles();
-            }
+       if (jumpNow) {
+    if (onWall && !onGround) {
+
+        // Wall jump
+        velY = phase.equals("DAY") ? -15 : -18;
+
+        int bounceX = touchingWallRight ? -15 : 15;
+        velX = bounceX;
+        wallJumpLock = 14;
+        jumpCount = 1;
+        spawnJumpParticles();
+
+    } else if (jumpCount < 2) {
+
+        // Day jumps are weaker
+        if (phase.equals("DAY")) {
+            velY = (jumpCount == 0) ? -16 : -13;
+        } else {
+            velY = (jumpCount == 0) ? -20 : -17;
         }
-        jumpWasPressed = key.jumpPressed;
+
+        jumpCount++;
+
+        if (jumpCount == 2)
+            spawnJumpParticles();
+    }
+}
+
+jumpWasPressed = key.jumpPressed;
 
         // Wall jump momentum — decays slower for better control
         if (velX != 0) {
