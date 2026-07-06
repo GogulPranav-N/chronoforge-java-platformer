@@ -71,4 +71,7 @@ public class Enemy {
             g2.fillOval(x + 10, y + 1, 5, 4);
         }
     }
+    public Rectangle getRect() {
+        return new Rectangle(x, y, width, height);
+    }
 }

@@ -104,6 +104,25 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
          for (Enemy enemy : currentLevel.enemies) {
             enemy.update();
         }
+        for (Enemy enemy : currentLevel.enemies) {
+
+            if (player.getRect().intersects(enemy.getRect())) {
+
+                if (player.invincibleTimer == 0) {
+
+                    player.takeDamage();
+
+                    boolean hitFromLeft =
+                        player.x > enemy.x;
+
+                    player.knockBack(hitFromLeft);
+
+                    shakeTimer = 10;
+                }
+            }
+        }
+                     
+
         if (player.isDead()) {
             state = GameState.GAMEOVER;
             return;

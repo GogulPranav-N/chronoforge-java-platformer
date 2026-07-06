@@ -190,8 +190,13 @@ jumpWasPressed = key.jumpPressed;
 
         // Wall jump momentum — decays slower for better control
         if (velX != 0) {
-            velX = (int)(velX * 0.88f);
+
             x += velX;
+
+            velX *= 0.85;
+
+            if (Math.abs(velX) < 1)
+                velX = 0;
         }
 
         // Fell off screen — take damage and respawn
@@ -268,7 +273,16 @@ jumpWasPressed = key.jumpPressed;
         health--;
         invincibleTimer = 90;
     }
+    public void knockBack(boolean hitFromLeft) {
 
+        if (hitFromLeft) {
+            velX = 12;
+        } else {
+            velX = -12;
+    }
+
+        velY = -10;
+    }
     public void respawn() {
         x = 100; y = 380;
         velX = 0; velY = 0;
