@@ -9,7 +9,7 @@ public class KeyHandler implements KeyListener {
     public boolean jumpPressed;
     public boolean dashPressed;
     public boolean escPressed;
-
+    public boolean attackPressed;
     @Override public void keyTyped(KeyEvent e) {}
 
     @Override
@@ -22,6 +22,8 @@ public class KeyHandler implements KeyListener {
         if (code == KeyEvent.VK_SPACE)  jumpPressed  = true;
         if (code == KeyEvent.VK_SHIFT)  dashPressed  = true;
         if (code == KeyEvent.VK_ESCAPE) escPressed   = true;
+        if (code == KeyEvent.VK_J) attackPressed = true;
+        
     }
 
     @Override
@@ -34,5 +36,6 @@ public class KeyHandler implements KeyListener {
         if (code == KeyEvent.VK_SPACE)  jumpPressed  = false;
         if (code == KeyEvent.VK_SHIFT)  dashPressed  = false;
         if (code == KeyEvent.VK_ESCAPE) escPressed   = false;
+        if (code == KeyEvent.VK_J) attackPressed = false;
     }
 }
