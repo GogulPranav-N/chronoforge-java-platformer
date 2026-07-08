@@ -43,7 +43,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     // ── Day / Night ───────────────────────────────────────────────────────
     float timeOfDay = 0f;
-    float timeSpeed = 0.00012f;
+    float timeSpeed = 0.000397f;
     String phase = "NIGHT";
 
     public GamePanel() {
@@ -114,9 +114,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         timeOfDay += timeSpeed;
         if (timeOfDay > 1f)
             timeOfDay = 0f;
-        if (timeOfDay < 0.25f || timeOfDay > 0.75f)
+        if (timeOfDay < 0.57f) 
             phase = "NIGHT";
-        else if (timeOfDay < 0.35f || timeOfDay > 0.65f)
+        else if (ttimeOfDay < 0.71f)
             phase = "DUSK";
         else
             phase = "DAY";
