@@ -16,6 +16,7 @@ import java.util.ArrayDeque;
  * - Landing impact: calls moveCtrl.onLand() with velY magnitude
  * - Double jump distinction: stronger stretch via onDoubleJump()
  */
+
 public class Player {
 
     // ── Position & physics ────────────────────────────────────────────────
