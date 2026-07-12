@@ -2,6 +2,7 @@ package levels;
 
 import enemy.Enemy;
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -19,9 +20,15 @@ public class Level {
     public final List<Enemy> enemies;
     public final int portalX, portalY;
     public final int worldW, worldH;
+    // Boss spawn data
+    public final int bossSpawnX, bossSpawnY;
+    public final int bossZoneX;
+    public final int bossLeftBound, bossRightBound;
 
     public Level(String name, Rectangle[] platforms, List<Enemy> enemies,
-            int portalX, int portalY, int worldW, int worldH) {
+            int portalX, int portalY, int worldW, int worldH,
+            int bossSpawnX, int bossSpawnY, int bossZoneX,
+            int bossLeftBound, int bossRightBound) {
         this.name = name;
         this.platforms = platforms;
         this.enemies = enemies;
@@ -29,6 +36,11 @@ public class Level {
         this.portalY = portalY;
         this.worldW = worldW;
         this.worldH = worldH;
+        this.bossSpawnX = bossSpawnX;
+        this.bossSpawnY = bossSpawnY;
+        this.bossZoneX = bossZoneX;
+        this.bossLeftBound = bossLeftBound;
+        this.bossRightBound = bossRightBound;
     }
 
     public static Level getLevel(int num) {
@@ -72,12 +84,14 @@ public class Level {
                 new Rectangle(2180, 180, 110, 14),
                 new Rectangle(2300, 100, 80, 18), // portal platform
         };
-        List<Enemy> e = Arrays.asList(
+        List<Enemy> e = new ArrayList<>(Arrays.asList(
                 new Enemy(310, 422, 260, 530),
                 new Enemy(950, 422, 900, 1180),
                 new Enemy(1250, 168, 1230, 1460),
-                new Enemy(2060, 228, 1950, 2250));
-        return new Level("The Awakening", p, e, 2330, 40, 2400, 600);
+                new Enemy(2060, 228, 1950, 2050)));
+        // bossSpawn on portal platform (y=100), bossZoneX = 1900
+        return new Level("The Awakening", p, e, 2330, 40, 2400, 600,
+                2195, 20, 1900, 2100, 2380);
     }
 
     // ── Level 2: "The Ruined Spire" ───────────────────────────────────────
@@ -119,13 +133,14 @@ public class Level {
                 new Rectangle(2220, 190, 100, 14),
                 new Rectangle(2310, 90, 80, 18), // portal platform
         };
-        List<Enemy> e = Arrays.asList(
+        List<Enemy> e = new ArrayList<>(Arrays.asList(
                 new Enemy(230, 422, 220, 380),
                 new Enemy(820, 248, 820, 1020),
                 new Enemy(1260, 258, 1260, 1450),
                 new Enemy(1680, 238, 1680, 1870),
-                new Enemy(2100, 228, 2100, 2290));
-        return new Level("The Ruined Spire", p, e, 2330, 30, 2400, 600);
+                new Enemy(2100, 228, 2100, 2200)));
+        return new Level("The Ruined Spire", p, e, 2330, 30, 2400, 600,
+                2240, 8, 1870, 2050, 2380);
     }
 
     // ── Level 3: "The Eclipse" ─────────────────────────────────────────────
@@ -173,7 +188,7 @@ public class Level {
                 new Rectangle(2370, 250, 80, 14),
                 new Rectangle(2420, 140, 80, 18), // portal platform
         };
-        List<Enemy> e = Arrays.asList(
+        List<Enemy> e = new ArrayList<>(Arrays.asList(
                 new Enemy(170, 422, 160, 310),
                 new Enemy(490, 248, 380, 660),
                 new Enemy(680, 88, 610, 750),
@@ -181,7 +196,8 @@ public class Level {
                 new Enemy(1220, 128, 1150, 1290),
                 new Enemy(1500, 238, 1500, 1700),
                 new Enemy(1740, 78, 1670, 1810),
-                new Enemy(2060, 178, 1880, 2180));
-        return new Level("The Eclipse", p, e, 2450, 100, 2500, 600);
+                new Enemy(2060, 178, 1880, 2080)));
+        return new Level("The Eclipse", p, e, 2450, 100, 2500, 600,
+                2345, 58, 2050, 2200, 2480);
     }
 }

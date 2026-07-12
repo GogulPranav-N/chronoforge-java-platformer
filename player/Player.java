@@ -343,139 +343,277 @@ public class Player {
 
         // ── Ghost afterimage (behind player) ─────────────────────────────
         for (float[] ghost : ghosts) {
-            int ga = (int) (ghost[2] * 130);
-            if (ga <= 0)
-                continue;
+            int ga = (int) (ghost[2] * 120);
+            if (ga <= 0) continue;
             AffineTransform gt = g2.getTransform();
-            float gcx = ghost[0] + W / 2f;
-            float gcy = ghost[1] + H / 2f;
+            float gcx = ghost[0] + W / 2f, gcy = ghost[1] + H / 2f;
             g2.translate(gcx, gcy);
             g2.scale(ghost[3], ghost[4]);
             g2.translate(-gcx, -gcy);
-            g2.setColor(new Color(120, 160, 255, ga));
+            g2.setColor(new Color(80, 140, 255, ga));
             g2.fillRoundRect((int) ghost[0], (int) ghost[1], W, H, 6, 6);
             g2.setTransform(gt);
         }
 
         // ── Flicker when invincible ────────────────────────────────────────
-        if (invincibleTimer > 0 && (invincibleTimer % 8 < 4))
-            return;
+        if (invincibleTimer > 0 && (invincibleTimer % 8 < 4)) return;
 
-        // ── Apply squash & stretch transform ─────────────────────────────
+        // ── Apply squash & stretch transform ──────────────────────────────
         AffineTransform saved = g2.getTransform();
-        float cx = x + W / 2f;
-        float cy = y + H / 2f;
+        float cx = x + W / 2f, cy = y + H / 2f;
         g2.translate(cx, cy);
         g2.scale(moveCtrl.scaleX, moveCtrl.scaleY);
         g2.translate(-cx, -cy);
 
         boolean night = phase.equals("NIGHT");
+        boolean dusk  = phase.equals("DUSK");
+        int ix = (int) x, iy = (int) y;
 
-        // ── Attack arc ───────────────────────────────────────────────────
-        if (isAttacking) {
-            float prog = 1f - (float) attackTimer / ATTACK_DURATION;
-            int arcX = facingRight ? (int) x + W : (int) x - 44;
-            g2.setColor(new Color(220, 220, 255, (int) (80 * (1f - prog))));
-            g2.fillArc(arcX, (int) y, 44, 44, facingRight ? -60 : 120, 120);
-            g2.setColor(new Color(200, 220, 255, 220));
-            g2.setStroke(new BasicStroke(2f));
-            g2.drawArc(arcX, (int) y + 2, 40, 40, facingRight ? -60 : 120, 120);
+        // ── Scarf / tail cloth (drawn first, behind body) ─────────────────
+        // Scarf trails opposite to movement; dashes far back
+        int scarfOff = isDashing
+                ? (facingRight ? -55 : 55)
+                : (int)Math.max(-42, Math.min(42, -velX * 3.8f));
+        int scarfRoot = facingRight ? ix + 8 : ix + W - 8;
+        // Strip 1 – wide, shorter
+        Color sc1 = new Color(35, 25, 70, 210);
+        int[] s1x = { scarfRoot, scarfRoot + scarfOff,
+                      scarfRoot + scarfOff + (facingRight ? -10 : 10), scarfRoot + 9 * (facingRight ? -1 : 1) };
+        int[] s1y = { iy + 10, iy + 16, iy + 44, iy + 38 };
+        g2.setColor(sc1);
+        g2.fillPolygon(s1x, s1y, 4);
+        // Strip 2 – narrow, longer
+        Color sc2 = new Color(25, 15, 55, 165);
+        int[] s2x = { scarfRoot + (facingRight ? 2 : -2), scarfRoot + scarfOff * 2 / 3,
+                      scarfRoot + scarfOff * 2 / 3 + (facingRight ? -6 : 6), scarfRoot + 5 * (facingRight ? -1 : 1) };
+        int[] s2y = { iy + 20, iy + 25, iy + 62, iy + 56 };
+        g2.setColor(sc2);
+        g2.fillPolygon(s2x, s2y, 4);
+        // Scarf edge highlight
+        g2.setColor(new Color(80, 55, 140, 100));
+        g2.drawLine(s1x[0], s1y[0], s1x[1], s1y[1]);
+
+        // ── Katana sheathed (diagonal behind body, handle at shoulder) ─────
+        if (!isAttacking && night) {
+            int ksx = facingRight ? ix + W / 2 - 4 : ix + W / 2 + 4;
+            int kex = facingRight ? ix - 10 : ix + W + 10;
+            // Saya (scabbard)
+            g2.setColor(new Color(25, 15, 38));
+            g2.setStroke(new BasicStroke(4.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(ksx, iy + 12, kex, iy + 40);
+            // Blade glint
+            g2.setColor(new Color(160, 165, 210, 160));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawLine(ksx, iy + 12, kex, iy + 40);
             g2.setStroke(new BasicStroke(1f));
+            // Tsuka (handle) wrapping
+            g2.setColor(new Color(80, 55, 30));
+            g2.fillRoundRect(ksx - 3, iy + 10, 7, 12, 2, 2);
+            g2.setColor(new Color(120, 85, 40, 180));
+            for (int ti = 0; ti < 3; ti++)
+                g2.drawLine(ksx - 3, iy + 12 + ti * 3, ksx + 4, iy + 12 + ti * 3);
         }
 
-        // Cape (billows opposite to velX)
-        g2.setColor(night ? new Color(140, 140, 240) : new Color(70, 70, 70));
-        int capeOffX = (int) (-velX * 1.8f);
-        int[] cx2 = { (int) x + (facingRight ? 0 : W),
-                (int) x + (facingRight ? -18 : W + 18) + capeOffX,
-                (int) x + (facingRight ? 6 : W - 6) };
-        int[] cy2 = { (int) y + 14, (int) y + 52, (int) y + 54 };
-        g2.fillPolygon(cx2, cy2, 3);
+        // ── Tabi boots (split-toe ninja boots) ────────────────────────────
+        Color bootBase = new Color(14, 9, 22);
+        Color bootEdge = new Color(28, 18, 40);
+        // Left boot
+        g2.setColor(bootBase);
+        g2.fillRoundRect(ix + 2, iy + H - 11, 14, 13, 5, 5);
+        g2.setColor(bootEdge);
+        g2.fillRect(ix + 3, iy + H - 11, 12, 4); // ankle cuff
+        g2.setColor(new Color(8, 5, 15));
+        g2.drawLine(ix + 9, iy + H - 5, ix + 9, iy + H + 2); // toe split
+        // Right boot
+        g2.setColor(bootBase);
+        g2.fillRoundRect(ix + W - 16, iy + H - 11, 14, 13, 5, 5);
+        g2.setColor(bootEdge);
+        g2.fillRect(ix + W - 15, iy + H - 11, 12, 4);
+        g2.setColor(new Color(8, 5, 15));
+        g2.drawLine(ix + W - 9, iy + H - 5, ix + W - 9, iy + H + 2);
 
-        // Split cape (second panel)
-        g2.setColor(night ? new Color(100, 100, 200, 160) : new Color(50, 50, 50, 160));
-        int[] cx3 = { (int) x + (facingRight ? 5 : W - 5),
-                (int) x + (facingRight ? -10 : W + 10) + capeOffX,
-                (int) x + (facingRight ? 10 : W - 10) };
-        int[] cy3 = { (int) y + 22, (int) y + 50, (int) y + 52 };
-        g2.fillPolygon(cx3, cy3, 3);
+        // ── Hakama (wide flowing leg panels) ──────────────────────────────
+        Color hakamaCol  = new Color(18, 12, 32);
+        Color hakamaLine = new Color(32, 22, 52);
+        // Left panel
+        g2.setColor(hakamaCol);
+        g2.fillRoundRect(ix + 1, iy + 31, 16, 22, 3, 3);
+        g2.setColor(hakamaLine);
+        g2.drawLine(ix + 2, iy + 36, ix + 14, iy + 36);
+        g2.drawLine(ix + 2, iy + 41, ix + 14, iy + 41);
+        // Right panel
+        g2.setColor(hakamaCol);
+        g2.fillRoundRect(ix + W - 17, iy + 31, 16, 22, 3, 3);
+        g2.setColor(hakamaLine);
+        g2.drawLine(ix + W - 16, iy + 36, ix + W - 4, iy + 36);
+        g2.drawLine(ix + W - 16, iy + 41, ix + W - 4, iy + 41);
 
-        // Ponytail
-        g2.setColor(night ? new Color(200, 200, 255) : new Color(120, 100, 80));
-        int ponyX = (int) x + (facingRight ? -5 : W + 1) + capeOffX / 2;
-        g2.fillRoundRect(ponyX, (int) y - 2, 6, 22, 3, 3);
+        // ── Obi / Hip sash ────────────────────────────────────────────────
+        Color obiCol = night ? new Color(75, 42, 130) : dusk ? new Color(90, 55, 30) : new Color(70, 65, 55);
+        g2.setColor(obiCol);
+        g2.fillRect(ix + 2, iy + 29, W - 4, 5);
+        // Sash knot
+        g2.setColor(new Color(Math.min(255, obiCol.getRed() + 35), obiCol.getGreen() + 25, Math.min(255, obiCol.getBlue() + 35)));
+        g2.fillRoundRect(facingRight ? ix + W - 11 : ix + 1, iy + 28, 10, 7, 3, 3);
 
-        // Body
-        Color bodyCol = night ? Color.WHITE
-                : phase.equals("DUSK")
-                        ? new Color(190, 150, 90)
-                        : new Color(130, 130, 130);
-        g2.setColor(bodyCol);
-        g2.fillRoundRect((int) x, (int) y, W, H, 6, 6);
-
-        // Armour panel lines
-        g2.setColor(new Color(150, 150, 200, 90));
-        g2.drawLine((int) x + 7, (int) y + 15, (int) x + W - 7, (int) y + 15);
-        g2.drawLine((int) x + 7, (int) y + 28, (int) x + W - 7, (int) y + 28);
-        g2.drawLine((int) x + 7, (int) y + 38, (int) x + W - 7, (int) y + 38);
+        // ── Chest plate (layered armor) ────────────────────────────────────
+        Color plateBase   = night ? new Color(238, 242, 255) : dusk ? new Color(195, 170, 120) : new Color(150, 145, 130);
+        Color plateShadow = night ? new Color(170, 178, 220) : dusk ? new Color(140, 110, 70)  : new Color(100, 96, 85);
+        Color plateGold   = night ? new Color(255, 215, 80)  : dusk ? new Color(200, 155, 60)  : new Color(170, 140, 55);
+        // Main plate
+        g2.setPaint(new GradientPaint(ix + 3, iy + 9, plateBase, ix + W - 3, iy + 31, plateShadow));
+        g2.fillRoundRect(ix + 3, iy + 9, W - 6, 23, 6, 6);
+        // Lamellar armor lines
+        g2.setColor(new Color(100, 110, 150, 80));
+        g2.drawLine(ix + 5, iy + 15, ix + W - 5, iy + 15);
+        g2.drawLine(ix + 5, iy + 21, ix + W - 5, iy + 21);
+        g2.drawLine(ix + 5, iy + 27, ix + W - 5, iy + 27);
+        // Gold trim border
+        g2.setColor(plateGold);
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(ix + 3, iy + 9, W - 6, 23, 6, 6);
+        g2.setStroke(new BasicStroke(1f));
+        // Center vertical gold line
+        g2.setColor(new Color(plateGold.getRed(), plateGold.getGreen(), plateGold.getBlue(), 180));
+        g2.drawLine(ix + W / 2, iy + 10, ix + W / 2, iy + 30);
 
         // Crescent moon emblem (night only)
         if (night) {
-            g2.setColor(new Color(255, 240, 160, 210));
-            g2.fillArc((int) x + 9, (int) y + 17, 17, 14, 30, 180);
-            g2.setColor(bodyCol);
-            g2.fillOval((int) x + 12, (int) y + 18, 11, 10);
-        }
-
-        // Hood
-        g2.setColor(night ? new Color(220, 220, 255) : new Color(100, 100, 100));
-        g2.fillOval((int) x + 4, (int) y - 11, 27, 24);
-        // Hood shadow
-        g2.setColor(new Color(0, 0, 0, 50));
-        g2.fillOval((int) x + 6, (int) y - 6, 23, 12);
-
-        // Face wrap
-        g2.setColor(night ? new Color(170, 170, 210) : new Color(80, 80, 80));
-        g2.fillRoundRect((int) x + 6, (int) y + 2, 23, 7, 4, 4);
-
-        // Glowing eye
-        int eyeX = facingRight ? (int) x + 19 : (int) x + 7;
-        g2.setColor(night ? new Color(160, 210, 255) : new Color(160, 140, 80));
-        g2.fillOval(eyeX, (int) y - 5, 9, 6);
-        g2.setColor(night ? new Color(240, 250, 255, 230) : new Color(210, 190, 100));
-        g2.fillOval(eyeX + 2, (int) y - 4, 5, 4);
-
-        // Weapon
-        if (night) {
-            // Katana
-            int kx = facingRight ? (int) x + W : (int) x - 30;
-            g2.setColor(new Color(200, 215, 255));
-            g2.fillRect(kx, (int) y + 27, 30, 3);
-            g2.setColor(new Color(255, 250, 200, 180)); // blade edge
-            g2.drawLine(kx, (int) y + 27, kx + 30, (int) y + 27);
-            g2.setColor(new Color(140, 120, 70)); // guard
-            g2.fillRect(facingRight ? (int) x + W - 3 : (int) x - 1, (int) y + 23, 5, 11);
+            g2.setColor(new Color(255, 242, 145, 215));
+            g2.fillArc(ix + 10, iy + 15, 15, 12, 25, 195);
+            g2.setColor(plateBase);
+            g2.fillOval(ix + 13, iy + 16, 10, 10);
         } else {
-            // Kunai
-            g2.setColor(new Color(170, 160, 130));
-            int kx = facingRight ? (int) x + W : (int) x - 14;
-            g2.fillRect(kx, (int) y + 30, 14, 3);
-            int[] tipX = facingRight ? new int[] { kx + 14, kx + 20, kx + 14 } : new int[] { kx, kx - 6, kx };
-            g2.fillPolygon(tipX, new int[] { (int) y + 27, (int) y + 31, (int) y + 35 }, 3);
+            // Sun emblem for day
+            g2.setColor(new Color(255, 215, 60, 180));
+            g2.fillOval(ix + W / 2 - 5, iy + 18, 10, 10);
         }
 
-        // ── Wall-slide effect: glow on wall side ─────────────────────────
-        if (!onGround && (touchingWallLeft || touchingWallRight)) {
-            boolean pressing = (touchingWallLeft && input.leftPressed)
-                    || (touchingWallRight && input.rightPressed);
-            if (pressing) {
-                int wallSide = touchingWallRight ? (int) x + W : (int) x;
-                g2.setColor(new Color(180, 180, 255, 80));
-                g2.fillRect(wallSide - 2, (int) y, 4, H);
+        // ── Pauldrons (shoulder plates) ────────────────────────────────────
+        Color pauldCol  = night ? new Color(58, 52, 80)  : new Color(85, 78, 68);
+        Color pauldEdge = night ? new Color(118, 110, 160) : new Color(140, 130, 110);
+        // Left pauldron
+        g2.setColor(pauldCol);
+        g2.fillRoundRect(ix - 5, iy + 8, 14, 15, 5, 5);
+        g2.setColor(pauldEdge);
+        g2.drawLine(ix - 4, iy + 9, ix + 7, iy + 9);
+        g2.setColor(plateGold);
+        g2.drawLine(ix - 5, iy + 8, ix + 9, iy + 8);
+        // Right pauldron
+        g2.setColor(pauldCol);
+        g2.fillRoundRect(ix + W - 9, iy + 8, 14, 15, 5, 5);
+        g2.setColor(pauldEdge);
+        g2.drawLine(ix + W - 8, iy + 9, ix + W + 3, iy + 9);
+        g2.setColor(plateGold);
+        g2.drawLine(ix + W - 9, iy + 8, ix + W + 5, iy + 8);
+
+        // ── Kote / forearm guards ─────────────────────────────────────────
+        Color koteCol = new Color(38, 32, 55);
+        g2.setColor(koteCol);
+        g2.fillRoundRect(ix - 3, iy + 20, 9, 13, 3, 3);
+        g2.fillRoundRect(ix + W - 6, iy + 20, 9, 13, 3, 3);
+        g2.setColor(pauldEdge);
+        g2.drawLine(ix - 2, iy + 21, ix + 4, iy + 21);
+        g2.drawLine(ix + W - 5, iy + 21, ix + W + 1, iy + 21);
+
+        // ── Head / Balaclava ─────────────────────────────────────────────
+        Color hoodBase  = night ? new Color(205, 212, 245) : dusk ? new Color(150, 140, 110) : new Color(115, 108, 92);
+        Color hoodDark  = night ? new Color(130, 138, 180) : dusk ? new Color(95, 88, 68)    : new Color(72, 66, 55);
+        Color hoodGold  = plateGold;
+        // Hood back flap (behind head)
+        g2.setColor(hoodDark);
+        int[] flapX = { ix + (facingRight ? 14 : W - 14), ix + (facingRight ? -5 : W + 5), ix + (facingRight ? 9 : W - 9) };
+        int[] flapY = { iy - 7, iy + 8, iy + 13 };
+        g2.fillPolygon(flapX, flapY, 3);
+        // Head shape
+        g2.setColor(hoodBase);
+        g2.fillOval(ix + 5, iy - 13, 25, 24);
+        // Hood shadow top
+        g2.setColor(hoodDark);
+        g2.fillOval(ix + 6, iy - 13, 23, 14);
+        // Lower shadow
+        g2.setColor(new Color(0, 0, 0, 25));
+        g2.fillOval(ix + 6, iy - 4, 23, 12);
+        // Gold trim at hood bottom
+        g2.setColor(hoodGold);
+        g2.setStroke(new BasicStroke(1.2f));
+        g2.drawArc(ix + 5, iy - 13, 25, 24, 185, 180);
+        g2.setStroke(new BasicStroke(1f));
+
+        // ── Face wrap / ninja mask ────────────────────────────────────────
+        Color wrapCol  = night ? new Color(145, 150, 192) : dusk ? new Color(95, 88, 68) : new Color(75, 70, 58);
+        Color wrapDark = new Color(Math.max(0, wrapCol.getRed() - 35), Math.max(0, wrapCol.getGreen() - 35), Math.max(0, wrapCol.getBlue() - 35));
+        g2.setColor(wrapCol);
+        g2.fillRoundRect(ix + 6, iy - 3, 23, 9, 4, 4);
+        // Wrap fabric lines
+        g2.setColor(wrapDark);
+        g2.drawLine(ix + 7, iy, ix + 28, iy);
+        g2.drawLine(ix + 7, iy + 3, ix + 28, iy + 3);
+        g2.drawLine(ix + 7, iy + 6, ix + 28, iy + 6);
+
+        // ── Eye slit (glowing narrow slot) ────────────────────────────────
+        int eyeX = facingRight ? ix + 19 : ix + 8;
+        Color eyeCore = night ? new Color(140, 228, 255) : dusk ? new Color(255, 180, 80) : new Color(210, 175, 65);
+        Color eyeGlow = new Color(eyeCore.getRed(), eyeCore.getGreen(), eyeCore.getBlue(), 110);
+        // Outer glow
+        g2.setColor(eyeGlow);
+        g2.fillOval(eyeX - 2, iy - 5, 14, 8);
+        // Eye slit (horizontal rect)
+        g2.setColor(eyeCore);
+        g2.fillRect(eyeX, iy - 4, 10, 5);
+        // Bright pupil
+        g2.setColor(new Color(230, 245, 255, 235));
+        g2.fillOval(eyeX + 3, iy - 3, 4, 3);
+
+        // ── Katana drawn (attack) ─────────────────────────────────────────
+        if (isAttacking) {
+            float prog = 1f - (float) attackTimer / ATTACK_DURATION;
+            if (night) {
+                int kx1 = facingRight ? ix + W - 2 : ix + 2;
+                int kx2 = facingRight ? ix + W + 40 : ix - 40;
+                // Blade glow
+                g2.setColor(new Color(170, 200, 255, (int)(65 * (1f - prog))));
+                g2.setStroke(new BasicStroke(10f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.drawLine(kx1, iy + 24, kx2, iy + 20);
+                // Blade body
+                g2.setColor(new Color(205, 220, 255, 240));
+                g2.setStroke(new BasicStroke(3.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.drawLine(kx1, iy + 24, kx2, iy + 20);
+                // Blade edge
+                g2.setColor(new Color(245, 250, 255, 200));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawLine(kx1, iy + 22, kx2, iy + 18);
+                g2.setStroke(new BasicStroke(1f));
+                // Tsuba (guard)
+                g2.setColor(new Color(160, 140, 65));
+                g2.fillOval(kx1 - 4, iy + 20, 8, 9);
+                g2.setColor(plateGold);
+                g2.drawOval(kx1 - 4, iy + 20, 8, 9);
+            } else {
+                // Kunai / dagger in day mode
+                int kx = facingRight ? ix + W + 4 : ix - 22;
+                g2.setColor(new Color(185, 175, 145));
+                g2.fillRect(kx, iy + 26, 18, 4);
+                int[] tpX = facingRight ? new int[]{kx+18, kx+25, kx+18} : new int[]{kx, kx-7, kx};
+                g2.fillPolygon(tpX, new int[]{iy+24, iy+28, iy+32}, 3);
+                g2.setColor(new Color(120, 100, 80));
+                g2.fillRect(kx + (facingRight ? -2 : 16), iy + 23, 5, 10);
             }
         }
 
-        // Restore transform (squash & stretch)
+        // ── Attack arc ────────────────────────────────────────────────────
+        if (isAttacking) {
+            float prog = 1f - (float) attackTimer / ATTACK_DURATION;
+            int arcX = facingRight ? ix + W : ix - 52;
+            g2.setColor(new Color(200, 220, 255, (int)(110 * (1f - prog))));
+            g2.fillArc(arcX, iy, 52, 52, facingRight ? -75 : 105, 140);
+            g2.setColor(new Color(225, 238, 255, 240));
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.drawArc(arcX + 2, iy + 2, 48, 48, facingRight ? -75 : 105, 140);
+            g2.setStroke(new BasicStroke(1f));
+        }
+
+        // ── Restore squash & stretch ───────────────────────────────────────
         g2.setTransform(saved);
     }
 
@@ -511,5 +649,15 @@ public class Player {
 
     public Rectangle getRect() {
         return new Rectangle((int) x, (int) y, W, H);
+    }
+
+    /**
+     * Returns the sword/katana attack hitbox — a rectangle extending forward
+     * from the player's body during an attack swing.
+     */
+    public Rectangle getAttackBox() {
+        int reach = 55;
+        int ax = facingRight ? (int) x + W : (int) x - reach;
+        return new Rectangle(ax, (int) y + 5, reach, H - 10);
     }
 }

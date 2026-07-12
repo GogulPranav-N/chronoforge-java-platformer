@@ -31,7 +31,7 @@ public class HUD {
     // ── Entry point ──────────────────────────────────────────────────────────
     public void draw(Graphics2D g2, GameState state, String phase,
             boolean canDash, int jumpCount, float timeOfDay,
-            int health, int maxHealth, int screenW, int screenH) {
+            int health, int maxHealth, int screenW, int screenH, int killCount) {
 
         enableAA(g2);
 
@@ -39,7 +39,7 @@ public class HUD {
             drawMenu(g2, screenW, screenH);
         } else if (state == GameState.PLAYING || state == GameState.PAUSED) {
             drawCombatHUD(g2, phase, canDash, jumpCount, timeOfDay,
-                    health, maxHealth, screenW, screenH);
+                    health, maxHealth, screenW, screenH, killCount);
             if (state == GameState.PAUSED)
                 drawPause(g2, screenW, screenH);
         } else if (state == GameState.GAMEOVER) {
@@ -53,7 +53,7 @@ public class HUD {
     private void drawCombatHUD(Graphics2D g2, String phase, boolean canDash,
             int jumpCount, float timeOfDay,
             int health, int maxHealth,
-            int screenW, int screenH) {
+            int screenW, int screenH, int killCount) {
 
         long now = System.currentTimeMillis();
 
@@ -183,10 +183,26 @@ public class HUD {
         g2.setFont(combatFont(Font.BOLD, 10));
         g2.drawString("TIME CYCLE", barX + 8, barY + barH - 6);
 
+        // ── Kill counter (top-right, below time cycle bar) ───────────────────
+        int kcX = screenW - 180, kcY = 48;
+        drawAngularPanel(g2, kcX, kcY, 170, 28);
+        g2.setColor(C_DIM);
+        g2.setFont(combatFont(Font.PLAIN, 10));
+        g2.drawString("SLAIN", kcX + 10, kcY + 12);
+        long now2 = System.currentTimeMillis();
+        float killPulse = killCount > 0 ? 0.7f + 0.3f * (float)Math.sin(now2 * 0.005) : 1f;
+        g2.setColor(new Color(220, 50, 50, (int)(killPulse * 220)));
+        g2.setFont(combatFont(Font.BOLD, 15));
+        g2.drawString(String.valueOf(killCount), kcX + 60, kcY + 20);
+        // Skull icon
+        g2.setColor(new Color(200, 160, 160, 180));
+        g2.setFont(combatFont(Font.BOLD, 14));
+        g2.drawString("☠", kcX + 130, kcY + 20);
+
         // ── Controls hint (bottom-right) ─────────────────────────────────────
         g2.setColor(new Color(180, 140, 130, 140));
         g2.setFont(combatFont(Font.PLAIN, 10));
-        String ctrl = "A/D: Move   SPACE: Jump   SHIFT: Dash   ESC: Pause";
+        String ctrl = "A/D: Move   SPACE: Jump   SHIFT: Dash   J: Attack   ESC: Pause";
         int ctrlW = g2.getFontMetrics().stringWidth(ctrl);
         g2.drawString(ctrl, screenW - ctrlW - 10, screenH - 6);
     }

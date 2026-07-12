@@ -5,5 +5,7 @@ public enum GameState {
     PLAYING,
     PAUSED,
     GAMEOVER,
-    WIN
+    WIN,
+    BOSS_CINEMATIC,
+    BOSS_FIGHT
 }

@@ -159,4 +159,22 @@ public class Camera {
         camX = playerX - screenW / 2f + 17;
         camY = playerY - screenH / 2f + 25;
     }
+
+    /**
+     * Smooth cinematic pan toward a world-space target.
+     * Call each frame during BOSS_CINEMATIC instead of update().
+     */
+    public void panTo(float targetWorldX, float targetWorldY, int worldW, int worldH) {
+        float tx = targetWorldX - screenW / 2f;
+        float ty = targetWorldY - screenH / 2f;
+        tx = Math.max(0, Math.min(tx, worldW - screenW));
+        ty = Math.max(0, Math.min(ty, worldH - screenH));
+        camX += (tx - camX) * 0.045f;
+        camY += (ty - camY) * 0.045f;
+        // Letterbox animation tick
+        if (letterboxCurrent < letterboxTarget)
+            letterboxCurrent = Math.min(letterboxCurrent + 4, letterboxTarget);
+        else if (letterboxCurrent > letterboxTarget)
+            letterboxCurrent = Math.max(letterboxCurrent - 4, letterboxTarget);
+    }
 }

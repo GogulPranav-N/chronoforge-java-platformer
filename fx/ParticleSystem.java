@@ -18,15 +18,16 @@ import java.util.Iterator;
 public class ParticleSystem {
 
     public enum Type {
-        JUMP, // Blue dust burst from feet
-        LAND, // Heavier dust ring on landing
-        DASH, // Cyan/white streaks opposing dash direction
-        SLASH, // White/gold sparks in slash arc
-        SLASH_HEAVY, // Orange sparks, bigger spread
-        BLOOD, // Red splatter on enemy hit
-        SPARK, // Small generic spark
-        MOON, // Purple/blue glow (night power)
-        DEATH // Large grey smoke explosion
+        JUMP,       // Blue dust burst from feet
+        LAND,       // Heavier dust ring on landing
+        DASH,       // Cyan/white streaks opposing dash direction
+        SLASH,      // White/gold sparks in slash arc
+        SLASH_HEAVY,// Orange sparks, bigger spread
+        BLOOD,      // Red splatter on enemy hit
+        SPARK,      // Small generic spark
+        MOON,       // Purple/blue glow (night power)
+        DEATH,      // Large grey smoke explosion
+        HEAL        // Green sparkle burst (kill-to-heal)
     }
 
     // Each row: [x, y, velX*100, velY*100, life, maxLife, r, g, b, size*10]
@@ -44,6 +45,7 @@ public class ParticleSystem {
             case SPARK -> spawnCount(wx, wy, 6, 255, 200, 100, 3, 3, -4, -2, 12, 4);
             case MOON -> spawnCount(wx, wy, 8, 120, 100, 255, 2, 2, -3, -3, 30, 5);
             case DEATH -> spawnDeath(wx, wy);
+            case HEAL -> spawnHeal(wx, wy);
         }
     }
 
@@ -144,6 +146,18 @@ public class ParticleSystem {
             int vy = (int) (Math.sin(angle) * speed * 100 - 800);
             int shade = 80 + (int) (Math.random() * 100);
             pool.add(new int[] { (int) (wx * 100), (int) (wy * 100), vx, vy, 35, 35, shade, shade, shade, 110 });
+        }
+    }
+
+    private void spawnHeal(float wx, float wy) {
+        // Bright green upward burst
+        spawnCount(wx, wy, 18, 60, 240, 100, 3, 3, -10, -3, 28, 6);
+        // Radial sparkle ring
+        for (int i = 0; i < 12; i++) {
+            double angle = Math.PI * 2 * i / 12;
+            int vx = (int) (Math.cos(angle) * 500);
+            int vy = (int) (Math.sin(angle) * 500 - 500);
+            pool.add(new int[] { (int) (wx * 100), (int) (wy * 100), vx, vy, 32, 32, 80, 255, 140, 80 });
         }
     }
 }
