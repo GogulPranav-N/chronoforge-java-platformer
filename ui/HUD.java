@@ -31,15 +31,17 @@ public class HUD {
     // ── Entry point ──────────────────────────────────────────────────────────
     public void draw(Graphics2D g2, GameState state, String phase,
             boolean canDash, int jumpCount, float timeOfDay,
-            int health, int maxHealth, int screenW, int screenH, int killCount) {
+            int health, int maxHealth, int screenW, int screenH, int killCount,
+            int healChargesLeft, int bossHealth, int bossMaxHealth, boolean showBossBar) {
 
         enableAA(g2);
 
         if (state == GameState.MENU) {
             drawMenu(g2, screenW, screenH);
-        } else if (state == GameState.PLAYING || state == GameState.PAUSED) {
+        } else if (state == GameState.PLAYING || state == GameState.PAUSED || state == GameState.BOSS_FIGHT) {
             drawCombatHUD(g2, phase, canDash, jumpCount, timeOfDay,
-                    health, maxHealth, screenW, screenH, killCount);
+                    health, maxHealth, screenW, screenH, killCount,
+                    healChargesLeft, bossHealth, bossMaxHealth, showBossBar);
             if (state == GameState.PAUSED)
                 drawPause(g2, screenW, screenH);
         } else if (state == GameState.GAMEOVER) {
@@ -53,7 +55,8 @@ public class HUD {
     private void drawCombatHUD(Graphics2D g2, String phase, boolean canDash,
             int jumpCount, float timeOfDay,
             int health, int maxHealth,
-            int screenW, int screenH, int killCount) {
+            int screenW, int screenH, int killCount,
+            int healChargesLeft, int bossHealth, int bossMaxHealth, boolean showBossBar) {
 
         long now = System.currentTimeMillis();
 
@@ -198,6 +201,37 @@ public class HUD {
         g2.setColor(new Color(200, 160, 160, 180));
         g2.setFont(combatFont(Font.BOLD, 14));
         g2.drawString("☠", kcX + 130, kcY + 20);
+
+        // ── Heal charges ─────────────────────────────────────────────────────
+        int hcX = kcX - 120;
+        drawAngularPanel(g2, hcX, kcY, 110, 28);
+        g2.setColor(C_DIM);
+        g2.setFont(combatFont(Font.PLAIN, 10));
+        g2.drawString("HEALS", hcX + 10, kcY + 12);
+        for (int i = 0; i < 2; i++) {
+            g2.setColor(i < healChargesLeft ? new Color(100, 255, 100) : new Color(60, 60, 60));
+            g2.fillOval(hcX + 60 + i * 20, kcY + 8, 12, 12);
+        }
+
+        // ── Boss Bar ─────────────────────────────────────────────────────────
+        if (showBossBar) {
+            int bbW = 400, bbH = 12;
+            int bbX = screenW / 2 - bbW / 2, bbY = screenH - 30;
+            g2.setColor(new Color(20, 10, 10, 200));
+            g2.fillRoundRect(bbX, bbY, bbW, bbH, 4, 4);
+            float bRatio = (float)bossHealth / bossMaxHealth;
+            if (bRatio > 0) {
+                g2.setColor(new Color(220, 40, 40));
+                g2.fillRoundRect(bbX, bbY, (int)(bbW * bRatio), bbH, 4, 4);
+            }
+            g2.setColor(new Color(150, 40, 40));
+            g2.drawRoundRect(bbX, bbY, bbW, bbH, 4, 4);
+            g2.setFont(combatFont(Font.BOLD, 12));
+            g2.setColor(Color.WHITE);
+            String bName = "SHADOW COMMANDER";
+            int nw = g2.getFontMetrics().stringWidth(bName);
+            g2.drawString(bName, screenW / 2 - nw / 2, bbY - 6);
+        }
 
         // ── Controls hint (bottom-right) ─────────────────────────────────────
         g2.setColor(new Color(180, 140, 130, 140));
