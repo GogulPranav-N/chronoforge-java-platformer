@@ -199,14 +199,25 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             return;
         }
 
+        // ── Q Ability activation ──────────────────────────────────────────
+        if (input.abilityJustPressed) {
+            int cost = player.activateAbility(phase, healChargesLeft);
+            if (cost >= 0) healChargesLeft -= cost;
+        }
+
         // ── Regular enemies (frozen during boss states) ───────────────────
         Rectangle attackBox = player.isAttacking ? player.getAttackBox() : null;
+
+        // Compute decoy target for clones (pick the closer clone to each enemy)
+        float decoyX = player.isShadowClone ? player.clonePositions[0] : -1f;
+        float decoyY = player.isShadowClone ? player.clonePositions[1] : -1f;
 
         if (state == GameState.PLAYING) {
             Iterator<Enemy> iter = currentLevel.enemies.iterator();
             while (iter.hasNext()) {
                 Enemy enemy = iter.next();
-                boolean gone = enemy.update((int)player.x, (int)player.y, bullets);
+                boolean gone = enemy.update((int)player.x, (int)player.y, bullets,
+                        player.isInvisible, decoyX, decoyY);
                 if (gone) {
                     particles.spawn(enemy.x + Enemy.W / 2f, enemy.y + Enemy.H / 2f,
                             ParticleSystem.Type.DEATH);
@@ -234,8 +245,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                     particles.spawn(enemy.x + Enemy.W / 2f, enemy.y + Enemy.H / 2f,
                             ParticleSystem.Type.SPARK, player.facingRight);
                 }
-                // Enemy contact hits player
-                if (player.getRect().intersects(enemy.getAttackRect())
+                // Enemy contact hits player (skip if invisible)
+                if (!player.isInvisible
+                        && player.getRect().intersects(enemy.getAttackRect())
                         && player.invincibleTimer == 0) {
                     player.takeDamage();
                     player.knockBack(player.x > enemy.x);
@@ -282,14 +294,24 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             }
         }
 
-        // ── Bullets ───────────────────────────────────────────────────────
+        // ── Bullets (time warp slows them; invisibility lets them pass) ────
+        float bulletMult = player.isTimeWarp ? 0.3f : 1.0f;
         Iterator<Bullet> bIter = bullets.iterator();
         while (bIter.hasNext()) {
             Bullet b = bIter.next();
-            b.update();
+            // Apply time warp slow
+            if (player.isTimeWarp) {
+                b.x += b.velX * bulletMult;
+                b.y += b.velY * bulletMult;
+                // Still age the bullet, but don't call full update (avoids double move)
+            } else {
+                b.update();
+            }
             if (!b.active) { bIter.remove(); continue; }
-            // Check bullet vs player
-            if (b.getRect().intersects(player.getRect()) && player.invincibleTimer == 0) {
+            // Bullets pass through invisible player
+            if (!player.isInvisible
+                    && b.getRect().intersects(player.getRect())
+                    && player.invincibleTimer == 0) {
                 player.takeDamage();
                 player.knockBack(b.velX < 0);
                 camera.addTrauma(0.42f);
@@ -361,7 +383,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         g2.fillRect(0, HEIGHT / 2, WIDTH, HEIGHT / 2);
 
         if (state == GameState.MENU) {
-            hud.draw(g2, state, phase, false, 0, timeOfDay, 5, 5, WIDTH, HEIGHT, killCount, 0, 0, 0, false);
+            hud.draw(g2, state, phase, false, 0, timeOfDay, 5, 5, WIDTH, HEIGHT, killCount,
+                    0, 0, 0, false,
+                    false, 0, 300, false, 0, 240, false, 0, 300, 0, 900);
             return;
         }
 
@@ -412,6 +436,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         // Particles (world space)
         particles.draw(g2);
 
+        // Shadow clones (world space, drawn behind player)
+        player.drawClones(g2);
+
         // Player
         player.draw(g2, phase);
 
@@ -439,7 +466,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
                 timeOfDay, player.health, player.maxHealth,
                 WIDTH, HEIGHT, killCount,
                 healChargesLeft, boss.health, boss.maxHealth,
-                state == GameState.BOSS_FIGHT && !boss.dead);
+                state == GameState.BOSS_FIGHT && !boss.dead,
+                player.isInvisible, player.invisibleTimer, 300,
+                player.isTimeWarp, player.timeWarpTimer, 240,
+                player.isShadowClone, player.shadowCloneTimer, 300,
+                player.timeWarpCooldown, 900);
     }
 
     // ── Boss title card ───────────────────────────────────────────────────

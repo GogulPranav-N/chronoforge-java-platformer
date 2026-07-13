@@ -36,9 +36,10 @@ public class Enemy {
     private static final int IFRAME = 18;
 
     // ── Shooting ──────────────────────────────────────────────────────────
-    private int shootTimer = 0;
-    private static final int SHOOT_INTERVAL = 95; // frames between shots
+    private static final int SHOOT_INTERVAL = 130; // frames between shots (~2.2 s)
+    private static final float BULLET_SPEED  = 5.5f;  // slower, more dodgeable
     private int muzzleFlash = 0;
+    private int shootTimer = 0;
 
     // ── Death ─────────────────────────────────────────────────────────────
     public boolean dead = false;
@@ -61,10 +62,14 @@ public class Enemy {
     /**
      * @param playerX  player world X for aiming
      * @param playerY  player world Y for aiming
-     * @param bullets  shared bullet list to add to when shooting
-     * @return true when the death animation is complete (remove from list)
+     * @param bullets  shared bullet list
+     * @param playerInvisible  true → enemy skips shooting entirely
+     * @param decoyX   shadow clone decoy X (-1 = none)
+     * @param decoyY   shadow clone decoy Y
+     * @return true when the death animation is complete
      */
-    public boolean update(float playerX, float playerY, List<Bullet> bullets) {
+    public boolean update(float playerX, float playerY, java.util.List<enemy.Bullet> bullets,
+                          boolean playerInvisible, float decoyX, float decoyY) {
         animTick++;
         visorGlow = (float)(0.6 + 0.4 * Math.sin(animTick * 0.08));
         if (muzzleFlash > 0) muzzleFlash--;
@@ -81,22 +86,30 @@ public class Enemy {
         if (x <= leftLimit)     { x = leftLimit;          direction = 1;  }
         if (x + W >= rightLimit){ x = rightLimit - W;     direction = -1; }
 
-        // Shoot toward player
-        if (++shootTimer >= SHOOT_INTERVAL) {
+        // Shoot — skip if player invisible
+        if (!playerInvisible && ++shootTimer >= SHOOT_INTERVAL) {
             shootTimer = 0;
             muzzleFlash = 7;
+            // Aim at decoy if one exists, otherwise aim at player
+            float targetX = (decoyX >= 0) ? decoyX : playerX;
+            float targetY = (decoyX >= 0) ? decoyY : playerY;
             float gunX = direction == 1 ? x + W + 4 : x - 8;
             float gunY = y + H * 0.42f;
-            float dx = playerX - gunX;
-            float dy = playerY - gunY;
+            float dx = targetX - gunX;
+            float dy = targetY - gunY;
             float len = (float)Math.sqrt(dx * dx + dy * dy);
             if (len > 0) {
-                float speed2 = 7.5f;
-                bullets.add(new Bullet(gunX, gunY, dx / len * speed2, dy / len * speed2, false));
+                bullets.add(new Bullet(gunX, gunY,
+                        dx / len * BULLET_SPEED, dy / len * BULLET_SPEED, false));
             }
         }
 
         return false;
+    }
+
+    /** Convenience overload — no ability effects (backwards compat). */
+    public boolean update(float playerX, float playerY, java.util.List<enemy.Bullet> bullets) {
+        return update(playerX, playerY, bullets, false, -1f, -1f);
     }
 
     // ── Combat ────────────────────────────────────────────────────────────
@@ -115,7 +128,8 @@ public class Enemy {
 
     // ── Collision ─────────────────────────────────────────────────────────
     public Rectangle getRect()        { return new Rectangle((int)x, (int)y, W, H); }
-    public Rectangle getAttackRect()  { return new Rectangle((int)x - 4, (int)y - 4, W + 8, H + 8); }
+    /** Exact body bounds — no padding. Player must physically touch enemy to take damage. */
+    public Rectangle getAttackRect()  { return new Rectangle((int)x, (int)y, W, H); }
 
     // ── Draw ──────────────────────────────────────────────────────────────
     public void draw(Graphics2D g2) {

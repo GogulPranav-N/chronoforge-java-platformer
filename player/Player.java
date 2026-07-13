@@ -80,6 +80,28 @@ public class Player {
     private static final int GHOST_MAX = 6;
     private final ArrayDeque<float[]> ghosts = new ArrayDeque<>(); // [x, y, alpha, scaleX, scaleY]
 
+    // ── Abilities ─────────────────────────────────────────────────────────
+    // DAY  — Invisibility: player vanishes, enemies skip targeting / bullets pass through
+    public boolean isInvisible   = false;
+    public int     invisibleTimer = 0;
+    private static final int INVISIBLE_DURATION = 300; // 5 seconds @ 60 fps
+
+    // DUSK — Time Warp: all enemy bullets and movement slow to 30%
+    public boolean isTimeWarp   = false;
+    public int     timeWarpTimer = 0;
+    public int     timeWarpCooldown = 0;
+    private static final int TIME_WARP_DURATION = 240; // 4 seconds
+    private static final int TIME_WARP_COOLDOWN = 900; // 15 seconds
+
+    // NIGHT — Shadow Clone: 2 decoy positions that attract enemy fire
+    public boolean isShadowClone   = false;
+    public int     shadowCloneTimer = 0;
+    public float[] clonePositions  = new float[4]; // [x1,y1,x2,y2]
+    private static final int CLONE_DURATION = 300; // 5 seconds
+
+    // Shared visual feedback tick
+    private float abilityPulse = 0f;
+
     // ── Systems ───────────────────────────────────────────────────────────
     private final InputManager input;
     private final ParticleSystem particles;
@@ -87,6 +109,7 @@ public class Player {
 
     // ── Dimensions ────────────────────────────────────────────────────────
     public static final int W = 35, H = 50;
+
 
     public Player(float startX, float startY, InputManager input, ParticleSystem particles) {
         this.x = startX;
@@ -101,10 +124,33 @@ public class Player {
     public void update(String phase, Rectangle[] platforms,
             int wallThickness, int screenW, int screenH) {
 
-        if (invincibleTimer > 0)
-            invincibleTimer--;
-        if (dashCooldown > 0)
-            dashCooldown--;
+        if (invincibleTimer > 0)  invincibleTimer--;
+        if (dashCooldown > 0)     dashCooldown--;
+        if (timeWarpCooldown > 0) timeWarpCooldown--;
+
+        // ── Ability timers ────────────────────────────────────────────────
+        abilityPulse = (float)(0.5 + 0.5 * Math.sin(System.currentTimeMillis() * 0.005));
+        if (isInvisible) {
+            invisibleTimer--;
+            if (invisibleTimer <= 0) {
+                isInvisible = false;
+                particles.spawn(x + W / 2f, y + H / 2f, ParticleSystem.Type.SPARK);
+            }
+        }
+        if (isTimeWarp) {
+            timeWarpTimer--;
+            if (timeWarpTimer <= 0) {
+                isTimeWarp = false;
+                timeWarpCooldown = TIME_WARP_COOLDOWN;
+                particles.spawn(x + W / 2f, y + H / 2f, ParticleSystem.Type.MOON);
+            }
+        }
+        if (isShadowClone) {
+            shadowCloneTimer--;
+            if (shadowCloneTimer <= 0) {
+                isShadowClone = false;
+            }
+        }
 
         // ── Dash trigger ──────────────────────────────────────────────────
         if (input.dashJustPressed && canDash && !isDashing && dashCooldown == 0
@@ -355,7 +401,33 @@ public class Player {
             g2.setTransform(gt);
         }
 
-        // ── Flicker when invincible ────────────────────────────────────────
+        // ── Invisibility shimmer — draw translucent shell, skip solid body ─
+        if (isInvisible) {
+            float prog = (float) invisibleTimer / INVISIBLE_DURATION;
+            int shimAlpha = (int)(30 + 25 * abilityPulse); // barely visible
+            // Ripple ring expanding outward
+            long now = System.currentTimeMillis();
+            for (int r = 0; r < 3; r++) {
+                float ringOff = (now * 0.003f + r * 1.4f) % (float)(Math.PI * 2);
+                int rSize = 8 + (int)(Math.sin(ringOff) * 6);
+                g2.setColor(new Color(200, 220, 255, shimAlpha / 2));
+                g2.drawOval((int)x - rSize + W/2, (int)y - rSize + H/2,
+                            W + rSize * 2, H + rSize * 2);
+            }
+            // Ghost outline
+            g2.setColor(new Color(180, 200, 255, shimAlpha));
+            g2.fillRoundRect((int)x + 2, (int)y, W - 4, H, 8, 8);
+            g2.fillOval((int)x + 5, (int)y - 12, 25, 23);
+            // "INVISIBLE" indicator
+            if (prog > 0.8f || (int)(now / 300) % 2 == 0) {
+                g2.setFont(new Font("Arial Narrow", Font.BOLD, 11));
+                g2.setColor(new Color(200, 220, 255, 200));
+                g2.drawString("INVISIBLE", (int)x - 10, (int)y - 20);
+            }
+            return; // Skip drawing solid player body
+        }
+
+        // ── Flicker when invincible (but not invisible) ────────────────────
         if (invincibleTimer > 0 && (invincibleTimer % 8 < 4)) return;
 
         // ── Apply squash & stretch transform ──────────────────────────────
@@ -364,6 +436,14 @@ public class Player {
         g2.translate(cx, cy);
         g2.scale(moveCtrl.scaleX, moveCtrl.scaleY);
         g2.translate(-cx, -cy);
+
+        // ── Time Warp visual: orange tint halo ────────────────────────────
+        if (isTimeWarp) {
+            float tw = (float) timeWarpTimer / TIME_WARP_DURATION;
+            int twa = (int)(60 * abilityPulse);
+            g2.setColor(new Color(255, 150, 30, twa));
+            g2.fillOval((int)x - 10, (int)y - 14, W + 20, H + 18);
+        }
 
         boolean night = phase.equals("NIGHT");
         boolean dusk  = phase.equals("DUSK");
@@ -641,6 +721,11 @@ public class Player {
         knockY = 0;
         moveCtrl.reset();
         ghosts.clear();
+        // Reset abilities
+        isInvisible = false;  invisibleTimer = 0;
+        isTimeWarp  = false;  timeWarpTimer  = 0;
+        isShadowClone = false; shadowCloneTimer = 0;
+        timeWarpCooldown = 0;
     }
 
     public boolean isDead() {
@@ -659,5 +744,74 @@ public class Player {
         int reach = 55;
         int ax = facingRight ? (int) x + W : (int) x - reach;
         return new Rectangle(ax, (int) y + 5, reach, H - 10);
+    }
+
+    // ── Ability System ────────────────────────────────────────────────────
+    /**
+     * Activate the phase ability. Called by GamePanel on Q press.
+     * @param phase   current time phase string
+     * @param heals   how many heal charges remain
+     * @return heal cost deducted (0 or positive), or -1 if cannot activate
+     */
+    public int activateAbility(String phase, int heals) {
+        switch (phase) {
+            case "DAY" -> {
+                if (heals < 2 || isInvisible) return -1;
+                isInvisible   = true;
+                invisibleTimer = INVISIBLE_DURATION;
+                invincibleTimer = INVISIBLE_DURATION; // also make immune to hits
+                particles.spawn(x + W / 2f, y + H / 2f, ParticleSystem.Type.MOON);
+                particles.spawn(x + W / 2f, y + H / 2f, ParticleSystem.Type.SPARK);
+                return 2;
+            }
+            case "DUSK" -> {
+                if (timeWarpCooldown > 0 || isTimeWarp) return -1;
+                isTimeWarp   = true;
+                timeWarpTimer = TIME_WARP_DURATION;
+                particles.spawn(x + W / 2f, y + H / 2f, ParticleSystem.Type.MOON);
+                return 0;
+            }
+            case "NIGHT" -> {
+                if (heals < 1 || isShadowClone) return -1;
+                isShadowClone   = true;
+                shadowCloneTimer = CLONE_DURATION;
+                // Place 2 clones: one behind, one on the opposite side
+                clonePositions[0] = x + (facingRight ? -100f : 100f);
+                clonePositions[1] = y;
+                clonePositions[2] = x + (facingRight ? -200f : 200f);
+                clonePositions[3] = y + 20f;
+                particles.spawn(clonePositions[0] + W / 2f, clonePositions[1] + H / 2f, ParticleSystem.Type.MOON);
+                particles.spawn(clonePositions[2] + W / 2f, clonePositions[3] + H / 2f, ParticleSystem.Type.MOON);
+                return 1;
+            }
+            default -> { return -1; }
+        }
+    }
+
+    /**
+     * Draw shadow clone decoys (called from GamePanel before player draw).
+     */
+    public void drawClones(Graphics2D g2) {
+        if (!isShadowClone) return;
+        float prog = (float) shadowCloneTimer / CLONE_DURATION;
+        int alpha = (int)(prog * 140 + 30);
+        for (int c = 0; c < 2; c++) {
+            int cx = (int) clonePositions[c * 2];
+            int cy = (int) clonePositions[c * 2 + 1];
+            // Pulsing silhouette
+            float pulse = (float)(0.6 + 0.4 * Math.sin(System.currentTimeMillis() * 0.006 + c * 2.1));
+            int a = (int)(alpha * pulse);
+            g2.setColor(new Color(100, 60, 220, a));
+            g2.fillRoundRect(cx + 3, cy, W - 6, H, 6, 6);
+            // Head
+            g2.fillOval(cx + 5, cy - 13, 25, 24);
+            // Glow ring
+            g2.setColor(new Color(180, 130, 255, a / 3));
+            g2.fillOval(cx - 8, cy - 18, W + 16, H + 20);
+            // Shimmer line
+            g2.setColor(new Color(200, 170, 255, (int)(a * 0.7)));
+            g2.drawLine(cx + 5, cy + (int)(System.currentTimeMillis() % 50),
+                        cx + W - 5, cy + (int)(System.currentTimeMillis() % 50));
+        }
     }
 }

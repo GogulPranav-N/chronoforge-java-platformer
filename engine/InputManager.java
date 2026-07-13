@@ -29,6 +29,7 @@ public class InputManager implements KeyListener {
     public boolean dashPressed;
     public boolean attackPressed; // J
     public boolean parryPressed; // K
+    public boolean abilityPressed; // Q — phase ability
     public boolean escPressed;
     public boolean enterPressed;
 
@@ -47,27 +48,31 @@ public class InputManager implements KeyListener {
     private boolean attackWasHeld = false;
     private boolean parryWasHeld = false;
     private boolean dashWasHeld = false;
+    private boolean abilityWasHeld = false;
 
     /** True only on the first frame the key was pressed. */
     public boolean jumpJustPressed;
     public boolean attackJustPressed;
     public boolean parryJustPressed;
     public boolean dashJustPressed;
+    public boolean abilityJustPressed;
 
     // ─────────────────────────────────────────────────────────────────────
     // Must be called once per game tick BEFORE physics/player update.
     // ─────────────────────────────────────────────────────────────────────
     public void tick() {
         // Edge detection
-        jumpJustPressed = jumpHeld && !jumpWasHeld;
-        attackJustPressed = attackPressed && !attackWasHeld;
-        parryJustPressed = parryPressed && !parryWasHeld;
-        dashJustPressed = dashPressed && !dashWasHeld;
+        jumpJustPressed    = jumpHeld    && !jumpWasHeld;
+        attackJustPressed  = attackPressed  && !attackWasHeld;
+        parryJustPressed   = parryPressed   && !parryWasHeld;
+        dashJustPressed    = dashPressed    && !dashWasHeld;
+        abilityJustPressed = abilityPressed && !abilityWasHeld;
 
-        jumpWasHeld = jumpHeld;
-        attackWasHeld = attackPressed;
-        parryWasHeld = parryPressed;
-        dashWasHeld = dashPressed;
+        jumpWasHeld    = jumpHeld;
+        attackWasHeld  = attackPressed;
+        parryWasHeld   = parryPressed;
+        dashWasHeld    = dashPressed;
+        abilityWasHeld = abilityPressed;
 
         // Jump buffer: start/refresh on first press
         if (jumpJustPressed)
@@ -122,11 +127,12 @@ public class InputManager implements KeyListener {
             case KeyEvent.VK_D -> rightPressed = true;
             case KeyEvent.VK_S -> downPressed = true;
             case KeyEvent.VK_SPACE -> jumpHeld = true;
-            case KeyEvent.VK_SHIFT -> dashPressed = true;
-            case KeyEvent.VK_J -> attackPressed = true;
-            case KeyEvent.VK_K -> parryPressed = true;
-            case KeyEvent.VK_ESCAPE -> escPressed = true;
-            case KeyEvent.VK_ENTER -> enterPressed = true;
+            case KeyEvent.VK_SHIFT  -> dashPressed    = true;
+            case KeyEvent.VK_J      -> attackPressed  = true;
+            case KeyEvent.VK_K      -> parryPressed   = true;
+            case KeyEvent.VK_Q      -> abilityPressed = true;
+            case KeyEvent.VK_ESCAPE -> escPressed     = true;
+            case KeyEvent.VK_ENTER  -> enterPressed   = true;
         }
     }
 
@@ -137,11 +143,12 @@ public class InputManager implements KeyListener {
             case KeyEvent.VK_D -> rightPressed = false;
             case KeyEvent.VK_S -> downPressed = false;
             case KeyEvent.VK_SPACE -> jumpHeld = false;
-            case KeyEvent.VK_SHIFT -> dashPressed = false;
-            case KeyEvent.VK_J -> attackPressed = false;
-            case KeyEvent.VK_K -> parryPressed = false;
-            case KeyEvent.VK_ESCAPE -> escPressed = false;
-            case KeyEvent.VK_ENTER -> enterPressed = false;
+            case KeyEvent.VK_SHIFT  -> dashPressed    = false;
+            case KeyEvent.VK_J      -> attackPressed  = false;
+            case KeyEvent.VK_K      -> parryPressed   = false;
+            case KeyEvent.VK_Q      -> abilityPressed = false;
+            case KeyEvent.VK_ESCAPE -> escPressed     = false;
+            case KeyEvent.VK_ENTER  -> enterPressed   = false;
         }
     }
 }
