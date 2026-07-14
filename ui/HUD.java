@@ -36,7 +36,8 @@ public class HUD {
             boolean isInvisible, int invisibleTimer, int invisibleMax,
             boolean isTimeWarp, int timeWarpTimer, int timeWarpMax,
             boolean isShadowClone, int shadowCloneTimer, int shadowCloneMax,
-            int timeWarpCooldown, int timeWarpCooldownMax) {
+            int timeWarpCooldown, int timeWarpCooldownMax,
+            int healCooldown, int healCooldownMax) {
 
         enableAA(g2);
 
@@ -45,7 +46,7 @@ public class HUD {
         } else if (state == GameState.PLAYING || state == GameState.PAUSED || state == GameState.BOSS_FIGHT) {
             drawCombatHUD(g2, phase, canDash, jumpCount, timeOfDay,
                     health, maxHealth, screenW, screenH, killCount,
-                    healChargesLeft, bossHealth, bossMaxHealth, showBossBar);
+                    healCooldown, healCooldownMax, bossHealth, bossMaxHealth, showBossBar);
             drawAbilityPanel(g2, phase,
                     isInvisible, invisibleTimer, invisibleMax,
                     isTimeWarp, timeWarpTimer, timeWarpMax,
@@ -66,7 +67,8 @@ public class HUD {
             int jumpCount, float timeOfDay,
             int health, int maxHealth,
             int screenW, int screenH, int killCount,
-            int healChargesLeft, int bossHealth, int bossMaxHealth, boolean showBossBar) {
+            int healCooldown, int healCooldownMax,
+            int bossHealth, int bossMaxHealth, boolean showBossBar) {
 
         long now = System.currentTimeMillis();
 
@@ -120,9 +122,9 @@ public class HUD {
         g2.setFont(combatFont(Font.BOLD, 11));
         g2.drawString(powerTxt, 100, 88);
 
-        // ── HEALTH BAR (bottom-left) ─────────────────────────────────────────
-        int hbX = 10, hbY = screenH - 46, hbW = 260, hbH = 22;
-        drawAngularPanel(g2, hbX, hbY - 16, hbW + 10, 38);
+        // ── HEALTH BAR (bottom area, prominent) ─────────────────────────────────
+        int hbX = 10, hbY = screenH - 44, hbW = 280, hbH = 26;
+        drawAngularPanel(g2, hbX, hbY - 16, hbW + 10, 42);
 
         g2.setColor(C_DIM);
         g2.setFont(combatFont(Font.BOLD, 10));
@@ -203,8 +205,8 @@ public class HUD {
         g2.setFont(combatFont(Font.PLAIN, 10));
         g2.drawString("SLAIN", kcX + 10, kcY + 12);
         long now2 = System.currentTimeMillis();
-        float killPulse = killCount > 0 ? 0.7f + 0.3f * (float)Math.sin(now2 * 0.005) : 1f;
-        g2.setColor(new Color(220, 50, 50, (int)(killPulse * 220)));
+        float killPulse = killCount > 0 ? 0.7f + 0.3f * (float) Math.sin(now2 * 0.005) : 1f;
+        g2.setColor(new Color(220, 50, 50, (int) (killPulse * 220)));
         g2.setFont(combatFont(Font.BOLD, 15));
         g2.drawString(String.valueOf(killCount), kcX + 60, kcY + 20);
         // Skull icon
@@ -212,15 +214,28 @@ public class HUD {
         g2.setFont(combatFont(Font.BOLD, 14));
         g2.drawString("☠", kcX + 130, kcY + 20);
 
-        // ── Heal charges ─────────────────────────────────────────────────────
-        int hcX = kcX - 120;
-        drawAngularPanel(g2, hcX, kcY, 110, 28);
-        g2.setColor(C_DIM);
-        g2.setFont(combatFont(Font.PLAIN, 10));
-        g2.drawString("HEALS", hcX + 10, kcY + 12);
-        for (int i = 0; i < 2; i++) {
-            g2.setColor(i < healChargesLeft ? new Color(100, 255, 100) : new Color(60, 60, 60));
-            g2.fillOval(hcX + 60 + i * 20, kcY + 8, 12, 12);
+        // ── Heal indicator ([H] key — cooldown-based, always usable) ─────────────
+        int hcX = kcX - 130;
+        drawAngularPanel(g2, hcX, kcY, 128, 28);
+        boolean healReady = healCooldown == 0;
+        long nowHeal = System.currentTimeMillis();
+        float healPulse = healReady ? 0.7f + 0.3f * (float) Math.sin(nowHeal * 0.007) : 0.5f;
+        g2.setColor(healReady ? new Color(80, 230, 80, (int)(180 + 70 * healPulse)) : C_DIM);
+        g2.setFont(combatFont(Font.BOLD, 10));
+        g2.drawString("[H] HEAL", hcX + 6, kcY + 12);
+        g2.setFont(combatFont(Font.PLAIN, 9));
+        if (healReady) {
+            g2.setColor(new Color(120, 255, 120, 200));
+            g2.drawString("READY \u2713", hcX + 78, kcY + 12);
+        } else {
+            int cdSec = (int) Math.ceil(healCooldown / 60f);
+            g2.setColor(C_DIM);
+            g2.drawString(cdSec + "s", hcX + 90, kcY + 12);
+            g2.setColor(new Color(80, 200, 80, 130));
+            g2.setStroke(new BasicStroke(2f));
+            float cdRatio = (float) healCooldown / healCooldownMax;
+            g2.drawArc(hcX + 108, kcY + 4, 14, 14, 90, (int)((1f - cdRatio) * 360));
+            g2.setStroke(new BasicStroke(1f));
         }
 
         // ── Boss Bar ─────────────────────────────────────────────────────────
@@ -229,10 +244,10 @@ public class HUD {
             int bbX = screenW / 2 - bbW / 2, bbY = screenH - 30;
             g2.setColor(new Color(20, 10, 10, 200));
             g2.fillRoundRect(bbX, bbY, bbW, bbH, 4, 4);
-            float bRatio = (float)bossHealth / bossMaxHealth;
+            float bRatio = (float) bossHealth / bossMaxHealth;
             if (bRatio > 0) {
                 g2.setColor(new Color(220, 40, 40));
-                g2.fillRoundRect(bbX, bbY, (int)(bbW * bRatio), bbH, 4, 4);
+                g2.fillRoundRect(bbX, bbY, (int) (bbW * bRatio), bbH, 4, 4);
             }
             g2.setColor(new Color(150, 40, 40));
             g2.drawRoundRect(bbX, bbY, bbW, bbH, 4, 4);
@@ -246,7 +261,7 @@ public class HUD {
         // ── Controls hint (bottom-right) ─────────────────────────────────────
         g2.setColor(new Color(180, 140, 130, 140));
         g2.setFont(combatFont(Font.PLAIN, 10));
-        String ctrl = "A/D: Move   SPACE: Jump   SHIFT: Dash   J: Attack   ESC: Pause";
+        String ctrl = "A/D: Move  SPACE: Jump  SHIFT: Dash  J: Attack  K: Kunai  H: Heal  Q: Ability  ESC: Pause";
         int ctrlW = g2.getFontMetrics().stringWidth(ctrl);
         g2.drawString(ctrl, screenW - ctrlW - 10, screenH - 6);
     }
@@ -269,32 +284,36 @@ public class HUD {
         String abilityName;
         String icon;
         Color abilityColor;
-        float activeRatio  = -1f; // -1 = not active
+        float activeRatio = -1f; // -1 = not active
         float cooldownRatio = -1f;
         boolean canUse;
 
         switch (phase) {
             case "DAY" -> {
                 abilityName = "Invisibility";
-                icon        = "◈";
+                icon = "◈";
                 abilityColor = new Color(220, 235, 255);
-                canUse      = heals >= 2 && !isInvisible;
-                if (isInvisible) activeRatio = (float) invisibleTimer / invisibleMax;
+                canUse = heals >= 2 && !isInvisible;
+                if (isInvisible)
+                    activeRatio = (float) invisibleTimer / invisibleMax;
             }
             case "DUSK" -> {
                 abilityName = "Time Warp";
-                icon        = "◎";
+                icon = "◎";
                 abilityColor = new Color(255, 180, 80);
-                canUse      = timeWarpCooldown == 0 && !isTimeWarp;
-                if (isTimeWarp) activeRatio = (float) timeWarpTimer / timeWarpMax;
-                if (timeWarpCooldown > 0) cooldownRatio = 1f - (float) timeWarpCooldown / timeWarpCooldownMax;
+                canUse = timeWarpCooldown == 0 && !isTimeWarp;
+                if (isTimeWarp)
+                    activeRatio = (float) timeWarpTimer / timeWarpMax;
+                if (timeWarpCooldown > 0)
+                    cooldownRatio = 1f - (float) timeWarpCooldown / timeWarpCooldownMax;
             }
             default -> { // NIGHT
                 abilityName = "Shadow Clone";
-                icon        = "❖";
+                icon = "❖";
                 abilityColor = new Color(180, 130, 255);
-                canUse      = heals >= 1 && !isShadowClone;
-                if (isShadowClone) activeRatio = (float) shadowCloneTimer / shadowCloneMax;
+                canUse = heals >= 1 && !isShadowClone;
+                if (isShadowClone)
+                    activeRatio = (float) shadowCloneTimer / shadowCloneMax;
             }
         }
 
@@ -312,7 +331,7 @@ public class HUD {
         if (activeRatio >= 0) {
             g2.setColor(new Color(100, 255, 150, 200));
             g2.setStroke(new BasicStroke(3f));
-            int arc = (int)(activeRatio * 360);
+            int arc = (int) (activeRatio * 360);
             g2.drawArc(icX - icR / 2 - 2, icY - icR / 2 - 2, icR * 2 + 4, icR * 2 + 4, 90, arc);
             g2.setStroke(new BasicStroke(1f));
         }
@@ -320,13 +339,13 @@ public class HUD {
         // Cooldown arc (dark overlay sweep)
         if (cooldownRatio >= 0) {
             g2.setColor(new Color(50, 50, 50, 180));
-            int arc = (int)((1f - cooldownRatio) * 360);
+            int arc = (int) ((1f - cooldownRatio) * 360);
             g2.fillArc(icX - icR / 2, icY - icR / 2, icR * 2, icR * 2, 90, arc);
         }
 
         // Icon text
-        float pulse = 0.7f + 0.3f * (float)Math.sin(now * 0.006);
-        int iconAlpha = canUse ? (int)(180 + 75 * pulse) : 80;
+        float pulse = 0.7f + 0.3f * (float) Math.sin(now * 0.006);
+        int iconAlpha = canUse ? (int) (180 + 75 * pulse) : 80;
         g2.setColor(new Color(abilityColor.getRed(), abilityColor.getGreen(),
                 abilityColor.getBlue(), iconAlpha));
         g2.setFont(combatFont(Font.BOLD, 16));
@@ -341,19 +360,19 @@ public class HUD {
         // Status text
         g2.setFont(combatFont(Font.PLAIN, 10));
         if (activeRatio >= 0) {
-            int secsLeft = (int)Math.ceil(activeRatio * (activeRatio == (float)invisibleTimer/invisibleMax ? 5
-                    : activeRatio == (float)timeWarpTimer/timeWarpMax ? 4 : 5));
+            int secsLeft = (int) Math.ceil(activeRatio * (activeRatio == (float) invisibleTimer / invisibleMax ? 5
+                    : activeRatio == (float) timeWarpTimer / timeWarpMax ? 4 : 5));
             g2.setColor(new Color(100, 255, 150, 200));
             g2.drawString("ACTIVE  " + secsLeft + "s", panX + 46, panY + 35);
         } else if (cooldownRatio >= 0) {
-            int cdSecs = (int)Math.ceil((float) timeWarpCooldown / 60);
+            int cdSecs = (int) Math.ceil((float) timeWarpCooldown / 60);
             g2.setColor(C_DIM);
             g2.drawString("COOLDOWN " + cdSecs + "s", panX + 46, panY + 35);
         } else {
             String cost = switch (phase) {
-                case "DAY"  -> "Cost: 2 Heals";
+                case "DAY" -> "Cost: 2 Heals";
                 case "DUSK" -> "Free  (15s CD)";
-                default     -> "Cost: 1 Heal";
+                default -> "Cost: 1 Heal";
             };
             g2.setColor(canUse ? new Color(abilityColor.getRed(), abilityColor.getGreen(),
                     abilityColor.getBlue(), 160) : C_DIM);

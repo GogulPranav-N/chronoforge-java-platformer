@@ -63,8 +63,8 @@ public class Player {
     private int wallSlideParticleTimer = 0;
 
     // ── Health ────────────────────────────────────────────────────────────
-    public int maxHealth = 5;
-    public int health = 5;
+    public int maxHealth = 8;
+    public int health = 8;
     public int invincibleTimer = 0;
 
     // ── Animation ─────────────────────────────────────────────────────────
@@ -81,22 +81,23 @@ public class Player {
     private final ArrayDeque<float[]> ghosts = new ArrayDeque<>(); // [x, y, alpha, scaleX, scaleY]
 
     // ── Abilities ─────────────────────────────────────────────────────────
-    // DAY  — Invisibility: player vanishes, enemies skip targeting / bullets pass through
-    public boolean isInvisible   = false;
-    public int     invisibleTimer = 0;
+    // DAY — Invisibility: player vanishes, enemies skip targeting / bullets pass
+    // through
+    public boolean isInvisible = false;
+    public int invisibleTimer = 0;
     private static final int INVISIBLE_DURATION = 300; // 5 seconds @ 60 fps
 
     // DUSK — Time Warp: all enemy bullets and movement slow to 30%
-    public boolean isTimeWarp   = false;
-    public int     timeWarpTimer = 0;
-    public int     timeWarpCooldown = 0;
+    public boolean isTimeWarp = false;
+    public int timeWarpTimer = 0;
+    public int timeWarpCooldown = 0;
     private static final int TIME_WARP_DURATION = 240; // 4 seconds
     private static final int TIME_WARP_COOLDOWN = 900; // 15 seconds
 
     // NIGHT — Shadow Clone: 2 decoy positions that attract enemy fire
-    public boolean isShadowClone   = false;
-    public int     shadowCloneTimer = 0;
-    public float[] clonePositions  = new float[4]; // [x1,y1,x2,y2]
+    public boolean isShadowClone = false;
+    public int shadowCloneTimer = 0;
+    public float[] clonePositions = new float[4]; // [x1,y1,x2,y2]
     private static final int CLONE_DURATION = 300; // 5 seconds
 
     // Shared visual feedback tick
@@ -109,7 +110,6 @@ public class Player {
 
     // ── Dimensions ────────────────────────────────────────────────────────
     public static final int W = 35, H = 50;
-
 
     public Player(float startX, float startY, InputManager input, ParticleSystem particles) {
         this.x = startX;
@@ -124,12 +124,15 @@ public class Player {
     public void update(String phase, Rectangle[] platforms,
             int wallThickness, int screenW, int screenH) {
 
-        if (invincibleTimer > 0)  invincibleTimer--;
-        if (dashCooldown > 0)     dashCooldown--;
-        if (timeWarpCooldown > 0) timeWarpCooldown--;
+        if (invincibleTimer > 0)
+            invincibleTimer--;
+        if (dashCooldown > 0)
+            dashCooldown--;
+        if (timeWarpCooldown > 0)
+            timeWarpCooldown--;
 
         // ── Ability timers ────────────────────────────────────────────────
-        abilityPulse = (float)(0.5 + 0.5 * Math.sin(System.currentTimeMillis() * 0.005));
+        abilityPulse = (float) (0.5 + 0.5 * Math.sin(System.currentTimeMillis() * 0.005));
         if (isInvisible) {
             invisibleTimer--;
             if (invisibleTimer <= 0) {
@@ -390,7 +393,8 @@ public class Player {
         // ── Ghost afterimage (behind player) ─────────────────────────────
         for (float[] ghost : ghosts) {
             int ga = (int) (ghost[2] * 120);
-            if (ga <= 0) continue;
+            if (ga <= 0)
+                continue;
             AffineTransform gt = g2.getTransform();
             float gcx = ghost[0] + W / 2f, gcy = ghost[1] + H / 2f;
             g2.translate(gcx, gcy);
@@ -404,31 +408,32 @@ public class Player {
         // ── Invisibility shimmer — draw translucent shell, skip solid body ─
         if (isInvisible) {
             float prog = (float) invisibleTimer / INVISIBLE_DURATION;
-            int shimAlpha = (int)(30 + 25 * abilityPulse); // barely visible
+            int shimAlpha = (int) (30 + 25 * abilityPulse); // barely visible
             // Ripple ring expanding outward
             long now = System.currentTimeMillis();
             for (int r = 0; r < 3; r++) {
-                float ringOff = (now * 0.003f + r * 1.4f) % (float)(Math.PI * 2);
-                int rSize = 8 + (int)(Math.sin(ringOff) * 6);
+                float ringOff = (now * 0.003f + r * 1.4f) % (float) (Math.PI * 2);
+                int rSize = 8 + (int) (Math.sin(ringOff) * 6);
                 g2.setColor(new Color(200, 220, 255, shimAlpha / 2));
-                g2.drawOval((int)x - rSize + W/2, (int)y - rSize + H/2,
-                            W + rSize * 2, H + rSize * 2);
+                g2.drawOval((int) x - rSize + W / 2, (int) y - rSize + H / 2,
+                        W + rSize * 2, H + rSize * 2);
             }
             // Ghost outline
             g2.setColor(new Color(180, 200, 255, shimAlpha));
-            g2.fillRoundRect((int)x + 2, (int)y, W - 4, H, 8, 8);
-            g2.fillOval((int)x + 5, (int)y - 12, 25, 23);
+            g2.fillRoundRect((int) x + 2, (int) y, W - 4, H, 8, 8);
+            g2.fillOval((int) x + 5, (int) y - 12, 25, 23);
             // "INVISIBLE" indicator
-            if (prog > 0.8f || (int)(now / 300) % 2 == 0) {
+            if (prog > 0.8f || (int) (now / 300) % 2 == 0) {
                 g2.setFont(new Font("Arial Narrow", Font.BOLD, 11));
                 g2.setColor(new Color(200, 220, 255, 200));
-                g2.drawString("INVISIBLE", (int)x - 10, (int)y - 20);
+                g2.drawString("INVISIBLE", (int) x - 10, (int) y - 20);
             }
             return; // Skip drawing solid player body
         }
 
         // ── Flicker when invincible (but not invisible) ────────────────────
-        if (invincibleTimer > 0 && (invincibleTimer % 8 < 4)) return;
+        if (invincibleTimer > 0 && (invincibleTimer % 8 < 4))
+            return;
 
         // ── Apply squash & stretch transform ──────────────────────────────
         AffineTransform saved = g2.getTransform();
@@ -440,32 +445,32 @@ public class Player {
         // ── Time Warp visual: orange tint halo ────────────────────────────
         if (isTimeWarp) {
             float tw = (float) timeWarpTimer / TIME_WARP_DURATION;
-            int twa = (int)(60 * abilityPulse);
+            int twa = (int) (60 * abilityPulse);
             g2.setColor(new Color(255, 150, 30, twa));
-            g2.fillOval((int)x - 10, (int)y - 14, W + 20, H + 18);
+            g2.fillOval((int) x - 10, (int) y - 14, W + 20, H + 18);
         }
 
         boolean night = phase.equals("NIGHT");
-        boolean dusk  = phase.equals("DUSK");
+        boolean dusk = phase.equals("DUSK");
         int ix = (int) x, iy = (int) y;
 
         // ── Scarf / tail cloth (drawn first, behind body) ─────────────────
         // Scarf trails opposite to movement; dashes far back
         int scarfOff = isDashing
                 ? (facingRight ? -55 : 55)
-                : (int)Math.max(-42, Math.min(42, -velX * 3.8f));
+                : (int) Math.max(-42, Math.min(42, -velX * 3.8f));
         int scarfRoot = facingRight ? ix + 8 : ix + W - 8;
         // Strip 1 – wide, shorter
         Color sc1 = new Color(35, 25, 70, 210);
         int[] s1x = { scarfRoot, scarfRoot + scarfOff,
-                      scarfRoot + scarfOff + (facingRight ? -10 : 10), scarfRoot + 9 * (facingRight ? -1 : 1) };
+                scarfRoot + scarfOff + (facingRight ? -10 : 10), scarfRoot + 9 * (facingRight ? -1 : 1) };
         int[] s1y = { iy + 10, iy + 16, iy + 44, iy + 38 };
         g2.setColor(sc1);
         g2.fillPolygon(s1x, s1y, 4);
         // Strip 2 – narrow, longer
         Color sc2 = new Color(25, 15, 55, 165);
         int[] s2x = { scarfRoot + (facingRight ? 2 : -2), scarfRoot + scarfOff * 2 / 3,
-                      scarfRoot + scarfOff * 2 / 3 + (facingRight ? -6 : 6), scarfRoot + 5 * (facingRight ? -1 : 1) };
+                scarfRoot + scarfOff * 2 / 3 + (facingRight ? -6 : 6), scarfRoot + 5 * (facingRight ? -1 : 1) };
         int[] s2y = { iy + 20, iy + 25, iy + 62, iy + 56 };
         g2.setColor(sc2);
         g2.fillPolygon(s2x, s2y, 4);
@@ -513,7 +518,7 @@ public class Player {
         g2.drawLine(ix + W - 9, iy + H - 5, ix + W - 9, iy + H + 2);
 
         // ── Hakama (wide flowing leg panels) ──────────────────────────────
-        Color hakamaCol  = new Color(18, 12, 32);
+        Color hakamaCol = new Color(18, 12, 32);
         Color hakamaLine = new Color(32, 22, 52);
         // Left panel
         g2.setColor(hakamaCol);
@@ -533,13 +538,14 @@ public class Player {
         g2.setColor(obiCol);
         g2.fillRect(ix + 2, iy + 29, W - 4, 5);
         // Sash knot
-        g2.setColor(new Color(Math.min(255, obiCol.getRed() + 35), obiCol.getGreen() + 25, Math.min(255, obiCol.getBlue() + 35)));
+        g2.setColor(new Color(Math.min(255, obiCol.getRed() + 35), obiCol.getGreen() + 25,
+                Math.min(255, obiCol.getBlue() + 35)));
         g2.fillRoundRect(facingRight ? ix + W - 11 : ix + 1, iy + 28, 10, 7, 3, 3);
 
         // ── Chest plate (layered armor) ────────────────────────────────────
-        Color plateBase   = night ? new Color(238, 242, 255) : dusk ? new Color(195, 170, 120) : new Color(150, 145, 130);
-        Color plateShadow = night ? new Color(170, 178, 220) : dusk ? new Color(140, 110, 70)  : new Color(100, 96, 85);
-        Color plateGold   = night ? new Color(255, 215, 80)  : dusk ? new Color(200, 155, 60)  : new Color(170, 140, 55);
+        Color plateBase = night ? new Color(238, 242, 255) : dusk ? new Color(195, 170, 120) : new Color(150, 145, 130);
+        Color plateShadow = night ? new Color(170, 178, 220) : dusk ? new Color(140, 110, 70) : new Color(100, 96, 85);
+        Color plateGold = night ? new Color(255, 215, 80) : dusk ? new Color(200, 155, 60) : new Color(170, 140, 55);
         // Main plate
         g2.setPaint(new GradientPaint(ix + 3, iy + 9, plateBase, ix + W - 3, iy + 31, plateShadow));
         g2.fillRoundRect(ix + 3, iy + 9, W - 6, 23, 6, 6);
@@ -570,7 +576,7 @@ public class Player {
         }
 
         // ── Pauldrons (shoulder plates) ────────────────────────────────────
-        Color pauldCol  = night ? new Color(58, 52, 80)  : new Color(85, 78, 68);
+        Color pauldCol = night ? new Color(58, 52, 80) : new Color(85, 78, 68);
         Color pauldEdge = night ? new Color(118, 110, 160) : new Color(140, 130, 110);
         // Left pauldron
         g2.setColor(pauldCol);
@@ -597,12 +603,13 @@ public class Player {
         g2.drawLine(ix + W - 5, iy + 21, ix + W + 1, iy + 21);
 
         // ── Head / Balaclava ─────────────────────────────────────────────
-        Color hoodBase  = night ? new Color(205, 212, 245) : dusk ? new Color(150, 140, 110) : new Color(115, 108, 92);
-        Color hoodDark  = night ? new Color(130, 138, 180) : dusk ? new Color(95, 88, 68)    : new Color(72, 66, 55);
-        Color hoodGold  = plateGold;
+        Color hoodBase = night ? new Color(205, 212, 245) : dusk ? new Color(150, 140, 110) : new Color(115, 108, 92);
+        Color hoodDark = night ? new Color(130, 138, 180) : dusk ? new Color(95, 88, 68) : new Color(72, 66, 55);
+        Color hoodGold = plateGold;
         // Hood back flap (behind head)
         g2.setColor(hoodDark);
-        int[] flapX = { ix + (facingRight ? 14 : W - 14), ix + (facingRight ? -5 : W + 5), ix + (facingRight ? 9 : W - 9) };
+        int[] flapX = { ix + (facingRight ? 14 : W - 14), ix + (facingRight ? -5 : W + 5),
+                ix + (facingRight ? 9 : W - 9) };
         int[] flapY = { iy - 7, iy + 8, iy + 13 };
         g2.fillPolygon(flapX, flapY, 3);
         // Head shape
@@ -621,8 +628,9 @@ public class Player {
         g2.setStroke(new BasicStroke(1f));
 
         // ── Face wrap / ninja mask ────────────────────────────────────────
-        Color wrapCol  = night ? new Color(145, 150, 192) : dusk ? new Color(95, 88, 68) : new Color(75, 70, 58);
-        Color wrapDark = new Color(Math.max(0, wrapCol.getRed() - 35), Math.max(0, wrapCol.getGreen() - 35), Math.max(0, wrapCol.getBlue() - 35));
+        Color wrapCol = night ? new Color(145, 150, 192) : dusk ? new Color(95, 88, 68) : new Color(75, 70, 58);
+        Color wrapDark = new Color(Math.max(0, wrapCol.getRed() - 35), Math.max(0, wrapCol.getGreen() - 35),
+                Math.max(0, wrapCol.getBlue() - 35));
         g2.setColor(wrapCol);
         g2.fillRoundRect(ix + 6, iy - 3, 23, 9, 4, 4);
         // Wrap fabric lines
@@ -652,7 +660,7 @@ public class Player {
                 int kx1 = facingRight ? ix + W - 2 : ix + 2;
                 int kx2 = facingRight ? ix + W + 40 : ix - 40;
                 // Blade glow
-                g2.setColor(new Color(170, 200, 255, (int)(65 * (1f - prog))));
+                g2.setColor(new Color(170, 200, 255, (int) (65 * (1f - prog))));
                 g2.setStroke(new BasicStroke(10f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 g2.drawLine(kx1, iy + 24, kx2, iy + 20);
                 // Blade body
@@ -674,8 +682,8 @@ public class Player {
                 int kx = facingRight ? ix + W + 4 : ix - 22;
                 g2.setColor(new Color(185, 175, 145));
                 g2.fillRect(kx, iy + 26, 18, 4);
-                int[] tpX = facingRight ? new int[]{kx+18, kx+25, kx+18} : new int[]{kx, kx-7, kx};
-                g2.fillPolygon(tpX, new int[]{iy+24, iy+28, iy+32}, 3);
+                int[] tpX = facingRight ? new int[] { kx + 18, kx + 25, kx + 18 } : new int[] { kx, kx - 7, kx };
+                g2.fillPolygon(tpX, new int[] { iy + 24, iy + 28, iy + 32 }, 3);
                 g2.setColor(new Color(120, 100, 80));
                 g2.fillRect(kx + (facingRight ? -2 : 16), iy + 23, 5, 10);
             }
@@ -685,7 +693,7 @@ public class Player {
         if (isAttacking) {
             float prog = 1f - (float) attackTimer / ATTACK_DURATION;
             int arcX = facingRight ? ix + W : ix - 52;
-            g2.setColor(new Color(200, 220, 255, (int)(110 * (1f - prog))));
+            g2.setColor(new Color(200, 220, 255, (int) (110 * (1f - prog))));
             g2.fillArc(arcX, iy, 52, 52, facingRight ? -75 : 105, 140);
             g2.setColor(new Color(225, 238, 255, 240));
             g2.setStroke(new BasicStroke(2.5f));
@@ -702,7 +710,7 @@ public class Player {
         if (invincibleTimer > 0)
             return;
         health--;
-        invincibleTimer = 90;
+        invincibleTimer = 140; // longer iframes = easier
     }
 
     public void knockBack(boolean hitFromLeft) {
@@ -722,9 +730,12 @@ public class Player {
         moveCtrl.reset();
         ghosts.clear();
         // Reset abilities
-        isInvisible = false;  invisibleTimer = 0;
-        isTimeWarp  = false;  timeWarpTimer  = 0;
-        isShadowClone = false; shadowCloneTimer = 0;
+        isInvisible = false;
+        invisibleTimer = 0;
+        isTimeWarp = false;
+        timeWarpTimer = 0;
+        isShadowClone = false;
+        shadowCloneTimer = 0;
         timeWarpCooldown = 0;
     }
 
@@ -749,15 +760,17 @@ public class Player {
     // ── Ability System ────────────────────────────────────────────────────
     /**
      * Activate the phase ability. Called by GamePanel on Q press.
-     * @param phase   current time phase string
-     * @param heals   how many heal charges remain
+     * 
+     * @param phase current time phase string
+     * @param heals how many heal charges remain
      * @return heal cost deducted (0 or positive), or -1 if cannot activate
      */
     public int activateAbility(String phase, int heals) {
         switch (phase) {
             case "DAY" -> {
-                if (heals < 2 || isInvisible) return -1;
-                isInvisible   = true;
+                if (heals < 2 || isInvisible)
+                    return -1;
+                isInvisible = true;
                 invisibleTimer = INVISIBLE_DURATION;
                 invincibleTimer = INVISIBLE_DURATION; // also make immune to hits
                 particles.spawn(x + W / 2f, y + H / 2f, ParticleSystem.Type.MOON);
@@ -765,15 +778,17 @@ public class Player {
                 return 2;
             }
             case "DUSK" -> {
-                if (timeWarpCooldown > 0 || isTimeWarp) return -1;
-                isTimeWarp   = true;
+                if (timeWarpCooldown > 0 || isTimeWarp)
+                    return -1;
+                isTimeWarp = true;
                 timeWarpTimer = TIME_WARP_DURATION;
                 particles.spawn(x + W / 2f, y + H / 2f, ParticleSystem.Type.MOON);
                 return 0;
             }
             case "NIGHT" -> {
-                if (heals < 1 || isShadowClone) return -1;
-                isShadowClone   = true;
+                if (heals < 1 || isShadowClone)
+                    return -1;
+                isShadowClone = true;
                 shadowCloneTimer = CLONE_DURATION;
                 // Place 2 clones: one behind, one on the opposite side
                 clonePositions[0] = x + (facingRight ? -100f : 100f);
@@ -784,7 +799,9 @@ public class Player {
                 particles.spawn(clonePositions[2] + W / 2f, clonePositions[3] + H / 2f, ParticleSystem.Type.MOON);
                 return 1;
             }
-            default -> { return -1; }
+            default -> {
+                return -1;
+            }
         }
     }
 
@@ -792,15 +809,16 @@ public class Player {
      * Draw shadow clone decoys (called from GamePanel before player draw).
      */
     public void drawClones(Graphics2D g2) {
-        if (!isShadowClone) return;
+        if (!isShadowClone)
+            return;
         float prog = (float) shadowCloneTimer / CLONE_DURATION;
-        int alpha = (int)(prog * 140 + 30);
+        int alpha = (int) (prog * 140 + 30);
         for (int c = 0; c < 2; c++) {
             int cx = (int) clonePositions[c * 2];
             int cy = (int) clonePositions[c * 2 + 1];
             // Pulsing silhouette
-            float pulse = (float)(0.6 + 0.4 * Math.sin(System.currentTimeMillis() * 0.006 + c * 2.1));
-            int a = (int)(alpha * pulse);
+            float pulse = (float) (0.6 + 0.4 * Math.sin(System.currentTimeMillis() * 0.006 + c * 2.1));
+            int a = (int) (alpha * pulse);
             g2.setColor(new Color(100, 60, 220, a));
             g2.fillRoundRect(cx + 3, cy, W - 6, H, 6, 6);
             // Head
@@ -809,9 +827,9 @@ public class Player {
             g2.setColor(new Color(180, 130, 255, a / 3));
             g2.fillOval(cx - 8, cy - 18, W + 16, H + 20);
             // Shimmer line
-            g2.setColor(new Color(200, 170, 255, (int)(a * 0.7)));
-            g2.drawLine(cx + 5, cy + (int)(System.currentTimeMillis() % 50),
-                        cx + W - 5, cy + (int)(System.currentTimeMillis() % 50));
+            g2.setColor(new Color(200, 170, 255, (int) (a * 0.7)));
+            g2.drawLine(cx + 5, cy + (int) (System.currentTimeMillis() % 50),
+                    cx + W - 5, cy + (int) (System.currentTimeMillis() % 50));
         }
     }
 }

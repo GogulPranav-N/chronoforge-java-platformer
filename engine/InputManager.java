@@ -27,9 +27,11 @@ public class InputManager implements KeyListener {
     public boolean rightPressed;
     public boolean downPressed;
     public boolean dashPressed;
-    public boolean attackPressed; // J
-    public boolean parryPressed; // K
+    public boolean attackPressed;  // J
+    public boolean parryPressed;   // K — parry
     public boolean abilityPressed; // Q — phase ability
+    public boolean kunaiPressed;   // K — throw kunai
+    public boolean healPressed;    // H — consume heal charge
     public boolean escPressed;
     public boolean enterPressed;
 
@@ -45,10 +47,12 @@ public class InputManager implements KeyListener {
 
     // ── One-shot edge detectors (set each frame, cleared next) ────────────
     private boolean jumpWasHeld = false;
-    private boolean attackWasHeld = false;
-    private boolean parryWasHeld = false;
-    private boolean dashWasHeld = false;
+    private boolean attackWasHeld  = false;
+    private boolean parryWasHeld   = false;
+    private boolean dashWasHeld    = false;
     private boolean abilityWasHeld = false;
+    private boolean kunaiWasHeld   = false;
+    private boolean healWasHeld    = false;
 
     /** True only on the first frame the key was pressed. */
     public boolean jumpJustPressed;
@@ -56,6 +60,8 @@ public class InputManager implements KeyListener {
     public boolean parryJustPressed;
     public boolean dashJustPressed;
     public boolean abilityJustPressed;
+    public boolean kunaiJustPressed;
+    public boolean healJustPressed;
 
     // ─────────────────────────────────────────────────────────────────────
     // Must be called once per game tick BEFORE physics/player update.
@@ -67,12 +73,16 @@ public class InputManager implements KeyListener {
         parryJustPressed   = parryPressed   && !parryWasHeld;
         dashJustPressed    = dashPressed    && !dashWasHeld;
         abilityJustPressed = abilityPressed && !abilityWasHeld;
+        kunaiJustPressed   = kunaiPressed   && !kunaiWasHeld;
+        healJustPressed    = healPressed    && !healWasHeld;
 
         jumpWasHeld    = jumpHeld;
         attackWasHeld  = attackPressed;
         parryWasHeld   = parryPressed;
         dashWasHeld    = dashPressed;
         abilityWasHeld = abilityPressed;
+        kunaiWasHeld   = kunaiPressed;
+        healWasHeld    = healPressed;
 
         // Jump buffer: start/refresh on first press
         if (jumpJustPressed)
@@ -129,8 +139,9 @@ public class InputManager implements KeyListener {
             case KeyEvent.VK_SPACE -> jumpHeld = true;
             case KeyEvent.VK_SHIFT  -> dashPressed    = true;
             case KeyEvent.VK_J      -> attackPressed  = true;
-            case KeyEvent.VK_K      -> parryPressed   = true;
+            case KeyEvent.VK_K      -> kunaiPressed   = true;
             case KeyEvent.VK_Q      -> abilityPressed = true;
+            case KeyEvent.VK_H      -> healPressed    = true;
             case KeyEvent.VK_ESCAPE -> escPressed     = true;
             case KeyEvent.VK_ENTER  -> enterPressed   = true;
         }
@@ -145,8 +156,9 @@ public class InputManager implements KeyListener {
             case KeyEvent.VK_SPACE -> jumpHeld = false;
             case KeyEvent.VK_SHIFT  -> dashPressed    = false;
             case KeyEvent.VK_J      -> attackPressed  = false;
-            case KeyEvent.VK_K      -> parryPressed   = false;
+            case KeyEvent.VK_K      -> kunaiPressed   = false;
             case KeyEvent.VK_Q      -> abilityPressed = false;
+            case KeyEvent.VK_H      -> healPressed    = false;
             case KeyEvent.VK_ESCAPE -> escPressed     = false;
             case KeyEvent.VK_ENTER  -> enterPressed   = false;
         }

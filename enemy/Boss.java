@@ -199,7 +199,8 @@ public class Boss {
         int dx = (int)x;
         int dy = (int)y;
 
-        if (invincibleTimer > 0 && (invincibleTimer % 5 < 2)) return;
+        // Flash white every 4 frames during iframes (subtle, not invisible)
+        if (invincibleTimer > 0 && (invincibleTimer % 8 < 2)) return;
 
         // ── Phase aura ────────────────────────────────────────────────────
         if (phase == 3) {
